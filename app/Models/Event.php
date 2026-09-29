@@ -12,6 +12,7 @@ class Event extends Model
     protected $table = 'events';
 
     protected $fillable = [
+        'slug',
         'name',
         'description',
         'location',
@@ -31,5 +32,10 @@ class Event extends Model
     public function invitations(): HasMany
     {
         return $this->hasMany(Invitation::class);
+    }
+
+    public function url(): string
+    {
+        return config('invitation.base_url').'/'.rawurlencode($this->slug);
     }
 }

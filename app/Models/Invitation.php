@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Enums\ConfirmationStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
 
 class Invitation extends Model
 {
@@ -18,10 +17,8 @@ class Invitation extends Model
     protected $fillable = [
         'event_id',
         'user_id',
-        'code',
         'confirmation_status',
         'confirmed_at',
-        'sent_at',
     ];
 
     protected function casts(): array
@@ -29,13 +26,7 @@ class Invitation extends Model
         return [
             'confirmation_status' => ConfirmationStatus::class,
             'confirmed_at' => 'datetime',
-            'sent_at' => 'datetime',
         ];
-    }
-
-    public static function generateCode(): string
-    {
-        return Str::random(24);
     }
 
     public function event(): BelongsTo

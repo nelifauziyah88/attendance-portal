@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Model
 {
@@ -18,11 +18,10 @@ class User extends Model
         'name',
         'department',
         'position',
-        'email',
     ];
 
-    public function invitation(): HasOne
+    public function invitations(): HasMany
     {
-        return $this->hasOne(Invitation::class);
+        return $this->hasMany(Invitation::class);
     }
 }

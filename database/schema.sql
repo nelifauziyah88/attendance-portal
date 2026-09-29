@@ -45,7 +45,8 @@ CREATE TABLE public.events (
     end_time time(0) without time zone,
     capacity integer NOT NULL,
     created_at timestamp(0) with time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp(0) with time zone
+    updated_at timestamp(0) with time zone,
+    slug character varying(50) NOT NULL
 );
 
 ALTER TABLE public.events ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
@@ -63,9 +64,7 @@ CREATE TABLE public.invitations (
     confirmation_status public.confirmation_status_enum DEFAULT 'PENDING'::public.confirmation_status_enum NOT NULL,
     confirmed_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    event_id bigint NOT NULL,
-    code character varying(32) NOT NULL,
-    sent_at timestamp(0) with time zone
+    event_id bigint NOT NULL
 );
 
 ALTER TABLE public.invitations ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
@@ -117,8 +116,7 @@ CREATE TABLE public.users (
     name character varying(150) NOT NULL,
     department character varying(100),
     "position" character varying(150),
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    email character varying(150)
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
 ALTER TABLE public.users ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
@@ -141,8 +139,8 @@ ALTER TABLE ONLY public.attendances
 ALTER TABLE ONLY public.events
     ADD CONSTRAINT events_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.invitations
-    ADD CONSTRAINT invitations_code_unique UNIQUE (code);
+ALTER TABLE ONLY public.events
+    ADD CONSTRAINT events_slug_unique UNIQUE (slug);
 
 ALTER TABLE ONLY public.invitations
     ADD CONSTRAINT invitations_event_id_user_id_unique UNIQUE (event_id, user_id);
@@ -164,9 +162,6 @@ ALTER TABLE ONLY public.migrations
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_badge_id_key UNIQUE (badge_id);
-
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_email_unique UNIQUE (email);
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
