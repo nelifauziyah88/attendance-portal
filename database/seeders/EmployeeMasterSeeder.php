@@ -40,12 +40,30 @@ class EmployeeMasterSeeder extends Seeder
                 'name' => $name,
                 'department' => $department,
                 'position' => $faker->randomElement(self::DEPARTMENTS[$department]),
-                'email' => Str::slug($name, '.').'.'.strtolower(str_replace('-', '', $badgeId)).'@example.com',
+                'email' => $this->emailFor($name, $badgeId),
             ];
         }
 
         foreach (array_chunk($rows, 200) as $chunk) {
             DB::table('users')->insertOrIgnore($chunk);
         }
+
+        $this->fillMissingEmails();
+    }
+
+    private function fillMissingEmails(): void
+    {
+        DB::table('users')
+            ->whereNull('email')
+            ->orderBy('id')
+            ->get(['id', 'badge_id', 'name'])
+            ->each(fn (object $user) => DB::table('users')
+                ->where('id', $user->id)
+                ->update(['email' => $this->emailFor($user->name, $user->badge_id)]));
+    }
+
+    private function emailFor(string $name, string $badgeId): string
+    {
+        return Str::slug($name, '.').'.'.strtolower(str_replace('-', '', $badgeId)).'@example.com';
     }
 }
