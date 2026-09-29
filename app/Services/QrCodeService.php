@@ -13,6 +13,6 @@ class QrCodeService
     {
         $qrCode = new QrCode(data: $content, size: $size - (self::MARGIN * 2), margin: self::MARGIN);
 
-        return (new PngWriter())->write($qrCode)->getString();
+        return (new PngWriter)->write($qrCode)->getString();
     }
 }

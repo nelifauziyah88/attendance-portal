@@ -17,7 +17,7 @@ class EnsureValidJson
             $decoded = json_decode($content, true);
 
             if (json_last_error() !== JSON_ERROR_NONE || ! is_array($decoded)) {
-                throw new InvalidJsonException();
+                throw new InvalidJsonException;
             }
         }
 
