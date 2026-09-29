@@ -19,22 +19,41 @@
 
     $displayUrl = $displayUrl ?? '/admin/lucky-spin/display';
 
-    $participants = $participants ?? [
-        'Kevin Wijaya', 'Sarah Amelia', 'Bima Kurniawan', 'Putri Maharani', 'Rizky Pratama', 'Siti Rahma',
-        'Farhan Akbar', 'Rani Oktaviani', 'Andi Prasetyo', 'Maya Lestari', 'Clara Anjani', 'Yusuf Hidayat',
-    ];
+    $participants = $participants ?? collect([
+        ['Kevin Wijaya', 'Software Engineer', 'Information Technology'],
+        ['Sarah Amelia', 'Marketing Manager', 'Marketing'],
+        ['Bima Kurniawan', 'Project Engineer', 'Engineering'],
+        ['Putri Maharani', 'HR Specialist', 'Human Resources'],
+        ['Rizky Pratama', 'Finance Analyst', 'Finance'],
+        ['Siti Rahma', 'Procurement Officer', 'Procurement'],
+        ['Farhan Akbar', 'QA Engineer', 'Information Technology'],
+        ['Rani Oktaviani', 'Marketing Executive', 'Marketing'],
+        ['Andi Prasetyo', 'Site Supervisor', 'Operations'],
+        ['Maya Lestari', 'Accountant', 'Finance'],
+        ['Clara Anjani', 'HR Business Partner', 'Human Resources'],
+        ['Yusuf Hidayat', 'Senior Software Engineer', 'Information Technology'],
+    ])->map(fn ($row, $index) => [
+        'badge' => 'BDG-' . str_pad($index + 1, 4, '0', STR_PAD_LEFT),
+        'name' => $row[0],
+        'position' => $row[1],
+        'department' => $row[2],
+    ])->all();
 
     $recentWinners = $recentWinners ?? [
-        ['number' => 12, 'name' => 'Alya Putri'],
-        ['number' => 11, 'name' => 'Dimas Saputra'],
-        ['number' => 10, 'name' => 'Neli Fauziyah'],
+        ['draw' => 12, 'badge' => 'BDG-0021', 'name' => 'Alya Putri', 'position' => 'Marketing Manager', 'department' => 'Marketing'],
     ];
+
+    $recentWinners = array_slice($recentWinners, 0, 1);
 
     $stats = [
         ['label' => 'CHECKED IN', 'key' => 'checked', 'value' => $checkedIn],
         ['label' => 'WINNERS', 'key' => 'winners', 'value' => $winners],
         ['label' => 'ELIGIBLE TO SPIN', 'key' => 'eligible', 'value' => $eligible],
     ];
+
+    $speeds = ['slow' => 'Slow', 'normal' => 'Normal', 'fast' => 'Fast'];
+
+    $columns = ['badge' => 'Badge ID', 'name' => 'Name', 'position' => 'Position', 'department' => 'Department'];
 
     $card = 'rounded-2xl border border-slate-200/80 bg-white p-6 shadow-lg shadow-blue-100/50';
 @endphp
@@ -47,11 +66,11 @@
         <div class="flex flex-1">
             <x-admin.sidebar active="lucky-spin" />
 
-            <main class="min-w-0 flex-1 p-4 sm:p-6 lg:p-8" data-draw data-winners="{{ $winners }}" data-eligible="{{ $eligible }}">
+            <main class="min-w-0 flex-1 p-4 sm:p-6 lg:p-8" data-draw data-winners="{{ $winners }}" data-eligible="{{ $eligible }}" data-history="{{ json_encode($recentWinners) }}">
                 <div class="flex flex-wrap items-start justify-between gap-4 [animation:rise_.7s_ease-out_both]">
                     <div>
                         <h1 class="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">Lucky Spin</h1>
-                        <p class="mt-2 text-sm text-slate-500">Spin the wheel to select one eligible checked-in participant.</p>
+                        <p class="mt-2 text-sm text-slate-500">Select one eligible checked-in participant as the next winner.</p>
                     </div>
                 </div>
 
@@ -64,82 +83,78 @@
                     @endforeach
                 </section>
 
-                <section class="mt-6 grid gap-6 lg:grid-cols-[3fr_2fr]">
-                    <article class="{{ $card }} sm:p-8 [animation:rise_.7s_.4s_ease-out_both]">
-                        <h2 class="text-xl font-semibold tracking-tight">Spin wheel</h2>
-                        <p class="mt-1 text-xs text-slate-500">Only guests who have checked in and have not won are included.</p>
+                <section class="mt-6 overflow-hidden rounded-2xl bg-gradient-to-br from-[#26346b] via-[#2f57e0] to-[#26346b] px-4 py-8 shadow-lg shadow-blue-200/60 sm:px-10 [animation:rise_.7s_.4s_ease-out_both]">
+                    <p data-result-note class="mb-6 text-center text-xs font-medium tracking-widest text-blue-100"></p>
 
-                        <x-admin.wheel :names="$participants" interactive class="mx-auto mt-10 w-full max-w-[26rem]" />
+                    <x-admin.reel :participants="$participants" size="md" class="mx-auto max-w-3xl" />
+                </section>
 
-                        <div class="mx-auto mt-8 w-full max-w-md">
-                            <div class="flex items-center justify-between">
-                                <label for="speed" class="text-[10px] font-semibold tracking-widest text-slate-500">SPIN SPEED</label>
-                                <span data-speed-label class="text-xs font-medium text-[#3563ff]"></span>
-                            </div>
-                            <input id="speed" type="range" min="1" max="10" step="1" value="7" data-speed class="mt-3 w-full cursor-pointer accent-[#3563ff]">
-                            <div class="mt-1 flex justify-between text-[10px] text-slate-400">
-                                <span>Slow</span>
-                                <span>Fast</span>
-                            </div>
-                        </div>
-
-                        <button type="button" data-spin class="mx-auto mt-6 flex h-14 w-full max-w-md items-center justify-center rounded-xl bg-[#3563ff] text-sm font-medium text-white shadow-lg shadow-blue-400/30 transition duration-300 hover:-translate-y-0.5 hover:bg-[#2a52e6] hover:shadow-xl hover:shadow-blue-400/40 active:scale-[.98] disabled:pointer-events-none disabled:opacity-60">
-                            Start Spin
-                        </button>
-                    </article>
-
-                    <article class="{{ $card }} flex flex-col [animation:rise_.7s_.5s_ease-out_both]">
-                        <h2 class="text-xl font-semibold tracking-tight">Current draw</h2>
-                        <p class="mt-1 text-xs text-slate-500">The result appears when the wheel stops.</p>
-
-                        <div class="mt-5 grid min-h-48 place-items-center rounded-2xl border border-slate-200 bg-slate-50/60 p-6 text-center">
-                            <div>
-                                <p data-result-title class="text-2xl font-semibold tracking-tight">Waiting to spin</p>
-                                <p data-result-note class="mt-2 text-sm text-slate-500">Winner {{ $winners + 1 }} is next</p>
-                            </div>
-                        </div>
-
-                        <h3 class="mt-8 text-lg font-semibold tracking-tight">Recent winners</h3>
-
-                        <ul data-winner-list class="mt-4 space-y-3">
-                            @foreach ($recentWinners as $winner)
-                                <li class="flex items-center gap-5 rounded-xl bg-slate-50/70 px-5 py-4 text-sm transition duration-300 hover:translate-x-1 hover:bg-blue-50/60">
-                                    <span class="w-5 text-xs font-semibold text-[#3563ff]">{{ $winner['number'] }}</span>
-                                    <span class="font-medium">{{ $winner['name'] }}</span>
-                                </li>
+                <section class="mt-6 flex flex-col items-center gap-4">
+                    <div class="{{ $card }} w-full max-w-md !p-4 text-center">
+                        <p class="text-[10px] font-semibold tracking-widest text-slate-500">SPIN SPEED</p>
+                        <div class="mt-3 grid grid-cols-3 gap-2">
+                            @foreach ($speeds as $key => $label)
+                                <button type="button" data-speed-option="{{ $key }}" aria-pressed="false" class="h-9 rounded-full border border-slate-200 text-xs font-medium text-slate-500 transition duration-300 hover:border-[#3563ff] aria-pressed:border-[#3563ff] aria-pressed:bg-[#3563ff] aria-pressed:text-white">{{ $label }}</button>
                             @endforeach
-                        </ul>
+                        </div>
+                        <p class="mt-2 text-[10px] text-slate-400">Synced with display</p>
+                    </div>
 
-                        <a href="{{ $displayUrl }}" target="_blank" rel="noopener" class="mt-auto flex h-12 items-center justify-center rounded-xl border-2 border-slate-200 bg-white text-xs font-medium text-[#3563ff] transition duration-300 hover:-translate-y-0.5 hover:border-[#3563ff] hover:shadow-lg hover:shadow-blue-100 active:scale-[.98]">
-                            Open display screen
+                    <div class="flex w-full max-w-md flex-wrap justify-center gap-3">
+                        <button type="button" data-spin class="flex h-12 flex-1 items-center justify-center rounded-xl bg-[#3563ff] px-6 text-sm font-medium text-white shadow-lg shadow-blue-400/30 transition duration-300 hover:-translate-y-0.5 hover:bg-[#2a52e6] hover:shadow-xl hover:shadow-blue-400/40 active:scale-[.98] disabled:pointer-events-none disabled:opacity-60">
+                            Draw Winner
+                        </button>
+                        <a href="{{ $displayUrl }}" target="_blank" rel="noopener" class="flex h-12 flex-1 items-center justify-center rounded-xl border-2 border-slate-200 bg-white px-6 text-sm font-medium text-[#3563ff] transition duration-300 hover:-translate-y-0.5 hover:border-[#3563ff] hover:shadow-lg hover:shadow-blue-100 active:scale-[.98]">
+                            Open Display
                         </a>
-                    </article>
+                    </div>
+                </section>
+
+                <section class="{{ $card }} mt-6 [animation:rise_.7s_.5s_ease-out_both]">
+                    <h2 class="text-xl font-semibold tracking-tight">Winners</h2>
+
+                    <div class="mt-4 overflow-x-auto">
+                        <table class="w-full min-w-[32rem] text-left text-sm">
+                            <thead>
+                                <tr class="bg-blue-50/70 text-xs font-semibold text-[#26346b]">
+                                    @foreach ($columns as $label)
+                                        <th class="px-4 py-3">{{ $label }}</th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody data-winner-list class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
                 </section>
             </main>
         </div>
     </div>
 
     <template id="winner-template">
-        <li class="flex items-center gap-5 rounded-xl bg-slate-50/70 px-5 py-4 text-sm transition duration-300 hover:translate-x-1 hover:bg-blue-50/60 [animation:rise_.5s_ease-out_both]">
-            <span data-number class="w-5 text-xs font-semibold text-[#3563ff]"></span>
-            <span data-name class="font-medium"></span>
-        </li>
+        <tr class="transition duration-300 hover:bg-blue-50/60 [animation:rise_.5s_ease-out_both]">
+            @foreach ($columns as $field => $label)
+                <td data-field="{{ $field }}" class="px-4 py-3 {{ $field === 'badge' ? 'font-semibold' : '' }}"></td>
+            @endforeach
+        </tr>
     </template>
 
     <script>
         const root = document.querySelector('[data-draw]');
-        const wheel = document.querySelector('[data-wheel]');
+        const reel = document.querySelector('[data-reel]');
+        const strip = document.querySelector('[data-strip]');
         const triggers = document.querySelectorAll('[data-spin]');
-        const title = document.querySelector('[data-result-title]');
         const note = document.querySelector('[data-result-note]');
         const list = document.querySelector('[data-winner-list]');
         const template = document.getElementById('winner-template');
-        const speedInput = document.querySelector('[data-speed]');
-        const speedLabel = document.querySelector('[data-speed-label]');
+        const speedButtons = document.querySelectorAll('[data-speed-option]');
         const channel = 'BroadcastChannel' in window ? new BroadcastChannel('lucky-spin') : null;
 
         const STORAGE_KEY = 'lucky-spin-state';
-        const names = JSON.parse(wheel.dataset.names);
+        const SPEEDS = { slow: 10, normal: 6.5, fast: 3.5 };
+        const LOOPS = 2;
+
+        const participants = JSON.parse(reel.dataset.participants);
+        const count = participants.length;
 
         const load = () => {
             try {
@@ -154,21 +169,22 @@
         const state = {
             winners: saved.winners ?? Number(root.dataset.winners),
             eligible: saved.eligible ?? Number(root.dataset.eligible),
-            rotation: saved.rotation ?? 0,
-            speed: saved.speed ?? 7,
+            slot: count + ((saved.slot ?? 0) % Math.max(count, 1)),
+            speed: SPEEDS[saved.speed] ? saved.speed : 'normal',
+            history: (saved.history ?? JSON.parse(root.dataset.history)).slice(0, 1),
             spinning: false,
             current: null,
         };
 
         const save = () => {
             try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...load(), winners: state.winners, eligible: state.eligible, rotation: state.rotation, speed: state.speed }));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...load(), winners: state.winners, eligible: state.eligible, slot: state.slot, speed: state.speed, history: state.history }));
             } catch {
                 return;
             }
         };
 
-        const durationFor = (speed) => 13.5 - speed;
+        const durationFor = (speed) => SPEEDS[speed];
 
         const setSpinning = (value) => {
             state.spinning = value;
@@ -181,42 +197,50 @@
 
         const applySpeed = (value) => {
             state.speed = value;
-            speedInput.value = value;
-            speedLabel.textContent = `Level ${value} (${durationFor(value).toFixed(1)}s)`;
+            speedButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.speedOption === value)));
         };
 
-        const restoreRotation = () => {
-            wheel.style.transition = 'none';
-            wheel.style.transform = `rotate(${state.rotation}deg)`;
-            wheel.getBoundingClientRect();
-            wheel.style.transition = '';
+        const moveTo = (slot) => strip.style.setProperty('--slot', slot);
+
+        const jumpTo = (slot) => {
+            strip.style.transition = 'none';
+            moveTo(slot);
+            strip.getBoundingClientRect();
+            strip.style.transition = '';
+        };
+
+        const renderHistory = () => {
+            const rows = state.history.map((entry) => {
+                const row = template.content.firstElementChild.cloneNode(true);
+                row.querySelectorAll('[data-field]').forEach((cell) => (cell.textContent = entry[cell.dataset.field] ?? ''));
+                return row;
+            });
+
+            list.replaceChildren(...rows);
         };
 
         const begin = (data) => {
             state.current = data;
-            state.rotation = data.rotation;
+            state.slot = data.slot;
 
             setSpinning(true);
-            title.textContent = 'Spinning...';
-            note.textContent = `Drawing winner ${data.draw}`;
-            wheel.style.transitionDuration = `${data.duration}s`;
-            wheel.style.transform = `rotate(${data.rotation}deg)`;
+            note.textContent = `DRAWING WINNER ${data.draw}`;
+            strip.style.transitionDuration = `${data.duration}s`;
+            moveTo(data.slot);
 
             save();
         };
 
         const spin = () => {
-            if (state.spinning) return;
+            if (state.spinning || !count) return;
 
-            const index = Math.floor(Math.random() * names.length);
-            const step = 360 / names.length;
-            const stop = 360 - (index * step + step / 2 + (Math.random() - 0.5) * step * 0.6);
-            const rotation = state.rotation + 360 * 6 + ((stop - (state.rotation % 360)) + 360) % 360;
+            const index = Math.floor(Math.random() * count);
+            const delta = (index - (state.slot % count) + count) % count;
 
             const data = {
                 type: 'spin',
-                rotation,
-                name: names[index],
+                slot: state.slot + LOOPS * count + delta,
+                winner: participants[index],
                 draw: state.winners + 1,
                 eligible: state.eligible,
                 duration: durationFor(state.speed),
@@ -227,20 +251,18 @@
         };
 
         const reveal = () => {
-            const { name, draw, eligible } = state.current;
+            const { winner, draw, eligible } = state.current;
 
-            title.textContent = name;
-            note.textContent = `Winner ${draw} - Congratulations!`;
-            title.animate([{ transform: 'scale(.8)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 500, easing: 'ease-out' });
+            note.textContent = `WINNER ${draw} - ${winner.name.toUpperCase()}`;
 
-            const item = template.content.firstElementChild.cloneNode(true);
-            item.querySelector('[data-number]').textContent = draw;
-            item.querySelector('[data-name]').textContent = name;
-            list.prepend(item);
-            [...list.children].slice(3).forEach((extra) => extra.remove());
-
+            state.history = [{ draw, ...winner }];
             state.winners = draw;
             state.eligible = eligible - 1;
+            state.slot = count + (state.slot % count);
+            state.current = null;
+
+            jumpTo(state.slot);
+            renderHistory();
             setStat('winners', state.winners);
             setStat('eligible', state.eligible);
             setSpinning(false);
@@ -250,14 +272,15 @@
         applySpeed(state.speed);
         setStat('winners', state.winners);
         setStat('eligible', state.eligible);
-        note.textContent = `Winner ${state.winners + 1} is next`;
-        restoreRotation();
+        note.textContent = `WINNER ${state.winners + 1} IS NEXT`;
+        renderHistory();
+        jumpTo(state.slot);
 
-        speedInput.addEventListener('input', () => {
-            applySpeed(Number(speedInput.value));
+        speedButtons.forEach((button) => button.addEventListener('click', () => {
+            applySpeed(button.dataset.speedOption);
             save();
             channel?.postMessage({ type: 'speed', value: state.speed });
-        });
+        }));
 
         channel?.addEventListener('message', ({ data }) => {
             if (data.type === 'spin') begin(data);
@@ -266,8 +289,8 @@
 
         triggers.forEach((trigger) => trigger.addEventListener('click', spin));
 
-        wheel.addEventListener('transitionend', (event) => {
-            if (event.propertyName === 'transform' && state.spinning) reveal();
+        strip.addEventListener('transitionend', (event) => {
+            if (event.target === strip && event.propertyName === 'transform' && state.spinning) reveal();
         });
     </script>
 </body>
