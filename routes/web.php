@@ -11,3 +11,6 @@ Route::view('/invitation', 'users.invitations.index')
 
 Route::view('/invitation/qr', 'users.invitations.qr_scan')
     ->name('invitation.qr');
+
+Route::view('/admin/login', 'admin.login')
+    ->name('admin.login');
