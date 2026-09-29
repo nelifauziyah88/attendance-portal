@@ -8,3 +8,6 @@ Route::get('/', function () {
 
 Route::view('/invitation', 'users.invitations.index')
     ->name('users.invitations.index');
+
+Route::view('/invitation/qr', 'users.invitations.qr_scan')
+    ->name('invitation.qr');
