@@ -35,12 +35,37 @@ ALTER TABLE public.attendances ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY 
     CACHE 1
 );
 
+CREATE TABLE public.events (
+    id bigint NOT NULL,
+    name character varying(150) NOT NULL,
+    description text,
+    location character varying(200) NOT NULL,
+    event_date date NOT NULL,
+    start_time time(0) without time zone NOT NULL,
+    end_time time(0) without time zone,
+    capacity integer NOT NULL,
+    created_at timestamp(0) with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp(0) with time zone
+);
+
+ALTER TABLE public.events ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
 CREATE TABLE public.invitations (
     id bigint NOT NULL,
     user_id bigint NOT NULL,
     confirmation_status public.confirmation_status_enum DEFAULT 'PENDING'::public.confirmation_status_enum NOT NULL,
     confirmed_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    event_id bigint NOT NULL,
+    code character varying(32) NOT NULL,
+    sent_at timestamp(0) with time zone
 );
 
 ALTER TABLE public.invitations ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
@@ -113,11 +138,17 @@ ALTER TABLE ONLY public.attendances
 ALTER TABLE ONLY public.attendances
     ADD CONSTRAINT attendances_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.invitations
-    ADD CONSTRAINT invitations_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.events
+    ADD CONSTRAINT events_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.invitations
-    ADD CONSTRAINT invitations_user_id_key UNIQUE (user_id);
+    ADD CONSTRAINT invitations_code_unique UNIQUE (code);
+
+ALTER TABLE ONLY public.invitations
+    ADD CONSTRAINT invitations_event_id_user_id_unique UNIQUE (event_id, user_id);
+
+ALTER TABLE ONLY public.invitations
+    ADD CONSTRAINT invitations_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.lucky_spin
     ADD CONSTRAINT lucky_spin_attendance_id_key UNIQUE (attendance_id);
@@ -148,6 +179,9 @@ CREATE INDEX idx_users_badge_id ON public.users USING btree (badge_id);
 
 ALTER TABLE ONLY public.attendances
     ADD CONSTRAINT attendances_invitation_id_fkey FOREIGN KEY (invitation_id) REFERENCES public.invitations(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.invitations
+    ADD CONSTRAINT invitations_event_id_foreign FOREIGN KEY (event_id) REFERENCES public.events(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.invitations
     ADD CONSTRAINT invitations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
