@@ -16,6 +16,7 @@ class InvitationResource extends JsonResource
             'name' => $this->user->name,
             'department' => $this->user->department,
             'position' => $this->user->position,
+            'email' => $this->user->email,
             'confirmationStatus' => $this->confirmation_status->value,
             'confirmedAt' => $this->confirmed_at?->utc()->toIso8601String(),
             'createdAt' => $this->created_at?->utc()->toIso8601String(),

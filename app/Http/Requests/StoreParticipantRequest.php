@@ -13,7 +13,7 @@ class StoreParticipantRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(collect(['badgeId', 'name', 'department', 'position'])
+        $this->merge(collect(['badgeId', 'name', 'department', 'position', 'email'])
             ->filter(fn (string $field) => is_string($this->input($field)))
             ->mapWithKeys(fn (string $field) => [$field => trim($this->input($field))])
             ->map(fn (string $value) => $value === '' ? null : $value)
@@ -27,6 +27,7 @@ class StoreParticipantRequest extends FormRequest
             'name' => ['required', 'string', 'max:150'],
             'department' => ['nullable', 'string', 'max:100'],
             'position' => ['nullable', 'string', 'max:150'],
+            'email' => ['nullable', 'string', 'email', 'max:150'],
         ];
     }
 
@@ -37,6 +38,7 @@ class StoreParticipantRequest extends FormRequest
             'name' => 'name',
             'department' => 'department',
             'position' => 'position',
+            'email' => 'email',
         ];
     }
 
@@ -46,6 +48,7 @@ class StoreParticipantRequest extends FormRequest
             'required' => ':attribute wajib diisi',
             'string' => ':attribute harus berupa teks',
             'max' => ':attribute maksimal :max karakter',
+            'email' => ':attribute harus berupa alamat email yang valid',
         ];
     }
 }
