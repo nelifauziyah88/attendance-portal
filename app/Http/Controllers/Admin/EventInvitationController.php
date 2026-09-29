@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexEventInvitationsRequest;
-use App\Http\Requests\SendInvitationEmailsRequest;
 use App\Http\Requests\StoreEventInvitationsRequest;
 use App\Http\Resources\InvitationResource;
 use App\Http\Responses\ApiResponse;
@@ -35,14 +34,6 @@ class EventInvitationController extends Controller
         $result = $this->invitations->createForEvent($eventId, $request->inviteAll(), $request->badgeIds());
 
         return ApiResponse::success($result, "{$result['created']} undangan berhasil dibuat", $result['created'] > 0 ? 201 : 200);
-    }
-
-    #[Response(status: 404, description: 'Event tidak ditemukan', type: 'array{success: false, message: string, data: null}')]
-    public function sendEmails(SendInvitationEmailsRequest $request, int $eventId): JsonResponse
-    {
-        $result = $this->invitations->sendEmails($eventId, $request->badgeIds(), $request->resend());
-
-        return ApiResponse::success($result, "{$result['sent']} email undangan berhasil dikirim");
     }
 
     #[Response(status: 404, description: 'Event tidak ditemukan', type: 'array{success: false, message: string, data: null}')]

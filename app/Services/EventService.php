@@ -9,6 +9,7 @@ use App\Models\Event;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class EventService
 {
@@ -31,8 +32,21 @@ class EventService
         return $event;
     }
 
+    public function findBySlug(string $slug): Event
+    {
+        $event = Event::query()->where('slug', strtolower($slug))->first();
+
+        if ($event === null) {
+            throw new ResourceNotFoundException('Event tidak ditemukan');
+        }
+
+        return $event;
+    }
+
     public function create(array $attributes): Event
     {
+        $attributes['slug'] ??= $this->generateSlug($attributes['name']);
+
         $event = Event::query()->create($attributes);
 
         return $this->find($event->id);
@@ -55,6 +69,8 @@ class EventService
                 throw new ConflictException("Kapasitas tidak boleh kurang dari jumlah peserta yang sudah konfirmasi hadir ({$confirmed})");
             }
 
+            $attributes['slug'] ??= $event->slug;
+
             $event->update($attributes);
 
             return $this->find($event->id);
@@ -70,6 +86,19 @@ class EventService
         }
 
         $event->delete();
+    }
+
+    private function generateSlug(string $name): string
+    {
+        $base = Str::limit(Str::slug($name), 44, '') ?: 'event';
+        $slug = $base;
+        $suffix = 2;
+
+        while (Event::query()->where('slug', $slug)->exists()) {
+            $slug = $base.'-'.$suffix++;
+        }
+
+        return $slug;
     }
 
     private function queryWithCounts(): Builder

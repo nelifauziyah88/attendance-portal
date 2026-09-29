@@ -7,12 +7,17 @@ use App\Http\Requests\EventRequest;
 use App\Http\Resources\EventResource;
 use App\Http\Responses\ApiResponse;
 use App\Services\EventService;
+use App\Services\QrCodeService;
 use Dedoc\Scramble\Attributes\Response;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response as HttpResponse;
 
 class EventController extends Controller
 {
-    public function __construct(private readonly EventService $events) {}
+    public function __construct(
+        private readonly EventService $events,
+        private readonly QrCodeService $qrCodes,
+    ) {}
 
     public function index(): JsonResponse
     {
@@ -56,5 +61,16 @@ class EventController extends Controller
         $this->events->delete($eventId);
 
         return ApiResponse::success(null, 'Event berhasil dihapus');
+    }
+
+    #[Response(status: 404, description: 'Event tidak ditemukan', type: 'array{success: false, message: string, data: null}')]
+    public function qr(int $eventId): HttpResponse
+    {
+        $event = $this->events->find($eventId);
+
+        return response($this->qrCodes->png($event->url()), 200, [
+            'Content-Type' => 'image/png',
+            'Content-Disposition' => 'inline; filename="qr-'.$event->slug.'.png"',
+        ]);
     }
 }

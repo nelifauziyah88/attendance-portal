@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\EventController;
-use App\Http\Controllers\Admin\EventInvitationController;
+use App\Http\Controllers\Admin\EventInvitationController as AdminEventInvitationController;
 use App\Http\Controllers\Admin\ParticipantController;
-use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\EventInvitationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->group(function () {
@@ -15,13 +15,14 @@ Route::prefix('admin')->group(function () {
     Route::get('/events/{eventId}', [EventController::class, 'show'])->whereNumber('eventId');
     Route::put('/events/{eventId}', [EventController::class, 'update'])->whereNumber('eventId');
     Route::delete('/events/{eventId}', [EventController::class, 'destroy'])->whereNumber('eventId');
+    Route::get('/events/{eventId}/qr', [EventController::class, 'qr'])->whereNumber('eventId');
 
-    Route::get('/events/{eventId}/quota', [EventInvitationController::class, 'quota'])->whereNumber('eventId');
-    Route::get('/events/{eventId}/invitations', [EventInvitationController::class, 'index'])->whereNumber('eventId');
-    Route::post('/events/{eventId}/invitations', [EventInvitationController::class, 'store'])->whereNumber('eventId');
-    Route::post('/events/{eventId}/invitations/send-emails', [EventInvitationController::class, 'sendEmails'])->whereNumber('eventId');
+    Route::get('/events/{eventId}/quota', [AdminEventInvitationController::class, 'quota'])->whereNumber('eventId');
+    Route::get('/events/{eventId}/invitations', [AdminEventInvitationController::class, 'index'])->whereNumber('eventId');
+    Route::post('/events/{eventId}/invitations', [AdminEventInvitationController::class, 'store'])->whereNumber('eventId');
 });
 
-Route::get('/invitations/{code}', [InvitationController::class, 'show']);
-Route::get('/invitations/{code}/qr', [InvitationController::class, 'qr']);
-Route::post('/invitations/{code}/confirm', [InvitationController::class, 'confirm']);
+Route::get('/events/{slug}', [EventInvitationController::class, 'show']);
+Route::get('/events/{slug}/form-options', [EventInvitationController::class, 'formOptions']);
+Route::post('/events/{slug}/check', [EventInvitationController::class, 'check']);
+Route::post('/events/{slug}/confirm', [EventInvitationController::class, 'confirm']);

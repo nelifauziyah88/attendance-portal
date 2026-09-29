@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreParticipantRequest extends FormRequest
+class CheckInvitationRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -13,20 +13,15 @@ class StoreParticipantRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(collect(['badgeId', 'name', 'department', 'position'])
-            ->filter(fn (string $field) => is_string($this->input($field)))
-            ->mapWithKeys(fn (string $field) => [$field => trim($this->input($field))])
-            ->map(fn (string $value) => $value === '' ? null : $value)
-            ->all());
+        if (is_string($this->input('badgeId'))) {
+            $this->merge(['badgeId' => trim($this->input('badgeId'))]);
+        }
     }
 
     public function rules(): array
     {
         return [
             'badgeId' => ['required', 'string', 'max:50'],
-            'name' => ['required', 'string', 'max:150'],
-            'department' => ['nullable', 'string', 'max:100'],
-            'position' => ['nullable', 'string', 'max:150'],
         ];
     }
 
@@ -34,9 +29,6 @@ class StoreParticipantRequest extends FormRequest
     {
         return [
             'badgeId' => 'badgeId',
-            'name' => 'name',
-            'department' => 'department',
-            'position' => 'position',
         ];
     }
 

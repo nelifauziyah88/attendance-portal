@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class EventRequest extends FormRequest
 {
@@ -13,16 +14,27 @@ class EventRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(collect(['name', 'description', 'location', 'eventDate', 'startTime', 'endTime'])
+        $this->merge(collect(['slug', 'name', 'description', 'location', 'eventDate', 'startTime', 'endTime'])
             ->filter(fn (string $field) => is_string($this->input($field)))
             ->mapWithKeys(fn (string $field) => [$field => trim($this->input($field))])
             ->map(fn (string $value) => $value === '' ? null : $value)
             ->all());
+
+        if (is_string($this->input('slug'))) {
+            $this->merge(['slug' => strtolower($this->input('slug'))]);
+        }
     }
 
     public function rules(): array
     {
         return [
+            'slug' => [
+                'nullable',
+                'string',
+                'max:50',
+                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+                Rule::unique('events', 'slug')->ignore($this->route('eventId')),
+            ],
             'name' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string', 'max:5000'],
             'location' => ['required', 'string', 'max:200'],
@@ -36,6 +48,7 @@ class EventRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'slug' => 'slug',
             'name' => 'name',
             'description' => 'description',
             'location' => 'location',
@@ -53,6 +66,8 @@ class EventRequest extends FormRequest
             'string' => ':attribute harus berupa teks',
             'max' => ':attribute maksimal :max karakter',
             'capacity.max' => ':attribute maksimal :max',
+            'slug.regex' => ':attribute hanya boleh berisi huruf kecil, angka, dan tanda strip',
+            'slug.unique' => ':attribute sudah digunakan oleh event lain',
             'eventDate.date_format' => ':attribute harus berformat YYYY-MM-DD',
             'date_format' => ':attribute harus berformat HH:MM',
             'endTime.after' => ':attribute harus setelah startTime',
@@ -64,6 +79,7 @@ class EventRequest extends FormRequest
     public function toAttributes(): array
     {
         return [
+            'slug' => $this->validated('slug'),
             'name' => $this->validated('name'),
             'description' => $this->validated('description'),
             'location' => $this->validated('location'),

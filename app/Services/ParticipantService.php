@@ -21,14 +21,8 @@ class ParticipantService
     {
         $badgeId = $attributes['badgeId'];
 
-        $email = isset($attributes['email']) ? strtolower($attributes['email']) : null;
-
         if (User::query()->where('badge_id', $badgeId)->exists()) {
             throw $this->duplicateBadge($badgeId);
-        }
-
-        if ($email !== null && User::query()->where('email', $email)->exists()) {
-            throw $this->duplicateEmail($email);
         }
 
         try {
@@ -37,20 +31,28 @@ class ParticipantService
                 'name' => $attributes['name'],
                 'department' => $attributes['department'] ?? null,
                 'position' => $attributes['position'] ?? null,
-                'email' => $email,
             ]);
-        } catch (UniqueConstraintViolationException $exception) {
-            if ($email !== null && str_contains($exception->getMessage(), 'email')) {
-                throw $this->duplicateEmail($email);
-            }
-
+        } catch (UniqueConstraintViolationException) {
             throw $this->duplicateBadge($badgeId);
         }
     }
 
-    private function duplicateEmail(string $email): ConflictException
+    public function departmentOptions(): array
     {
-        return new ConflictException("Email {$email} sudah terdaftar");
+        return User::query()
+            ->whereNotNull('department')
+            ->whereNotNull('position')
+            ->distinct()
+            ->orderBy('department')
+            ->orderBy('position')
+            ->get(['department', 'position'])
+            ->groupBy('department')
+            ->map(fn ($rows, string $department) => [
+                'name' => $department,
+                'positions' => $rows->pluck('position')->values()->all(),
+            ])
+            ->values()
+            ->all();
     }
 
     private function duplicateBadge(string $badgeId): ConflictException
