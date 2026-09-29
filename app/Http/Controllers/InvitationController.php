@@ -38,6 +38,11 @@ class InvitationController extends Controller
         );
     }
 
+    public function quota(): JsonResponse
+    {
+        return ApiResponse::success($this->invitations->quota(), 'Kuota undangan berhasil diambil');
+    }
+
     public function show(string $badgeId): JsonResponse
     {
         return ApiResponse::success(

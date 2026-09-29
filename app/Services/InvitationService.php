@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 class InvitationService
 {
+    private const QUOTA_LOCK_KEY = 990001;
+
     public function list(): Collection
     {
         return Invitation::query()
@@ -71,6 +73,14 @@ class InvitationService
                 throw new ConflictException("Undangan sudah dikonfirmasi dengan status {$invitation->confirmation_status->value}");
             }
 
+            if ($attending) {
+                DB::select('SELECT pg_advisory_xact_lock(?)', [self::QUOTA_LOCK_KEY]);
+
+                if ($this->quota()['remaining'] <= 0) {
+                    throw new ConflictException('Kuota penuh, konfirmasi kehadiran tidak dapat diproses');
+                }
+            }
+
             $invitation->update([
                 'confirmation_status' => $attending ? ConfirmationStatus::Hadir : ConfirmationStatus::TidakHadir,
                 'confirmed_at' => now(),
@@ -78,6 +88,20 @@ class InvitationService
 
             return $invitation->load('user');
         });
+    }
+
+    public function quota(): array
+    {
+        $capacity = (int) config('invitation.capacity');
+        $confirmed = Invitation::query()
+            ->where('confirmation_status', ConfirmationStatus::Hadir)
+            ->count();
+
+        return [
+            'capacity' => $capacity,
+            'confirmed' => $confirmed,
+            'remaining' => max(0, $capacity - $confirmed),
+        ];
     }
 
     public function invitationUrl(string $badgeId): string
