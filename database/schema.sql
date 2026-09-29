@@ -168,10 +168,6 @@ ALTER TABLE ONLY public.users
 
 CREATE INDEX idx_invitations_status ON public.invitations USING btree (confirmation_status);
 
-CREATE INDEX idx_lucky_spin_attendance ON public.lucky_spin USING btree (attendance_id);
-
-CREATE INDEX idx_users_badge_id ON public.users USING btree (badge_id);
-
 ALTER TABLE ONLY public.attendances
     ADD CONSTRAINT attendances_invitation_id_fkey FOREIGN KEY (invitation_id) REFERENCES public.invitations(id) ON DELETE CASCADE;
 
