@@ -7,6 +7,7 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Support\Carbon;
 
 class InvitationMail extends Mailable
 {
@@ -19,7 +20,7 @@ class InvitationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Undangan '.config('invitation.event_name'),
+            subject: 'Undangan '.$this->invitation->event->name,
         );
     }
 
@@ -28,7 +29,10 @@ class InvitationMail extends Mailable
         return new Content(
             view: 'emails.invitation',
             with: [
-                'eventName' => config('invitation.event_name'),
+                'event' => $this->invitation->event,
+                'eventDate' => Carbon::parse($this->invitation->event->event_date)->locale('id')->translatedFormat('l, j F Y'),
+                'eventTime' => substr($this->invitation->event->start_time, 0, 5)
+                    .($this->invitation->event->end_time ? ' - '.substr($this->invitation->event->end_time, 0, 5) : '').' WIB',
                 'participant' => $this->invitation->user,
             ],
         );

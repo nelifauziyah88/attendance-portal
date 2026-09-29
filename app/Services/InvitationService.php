@@ -5,73 +5,90 @@ namespace App\Services;
 use App\Enums\ConfirmationStatus;
 use App\Exceptions\AccessDeniedException;
 use App\Exceptions\ConflictException;
-use App\Exceptions\ResourceNotFoundException;
-use App\Exceptions\UnprocessableException;
 use App\Mail\InvitationMail;
+use App\Models\Event;
 use App\Models\Invitation;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class InvitationService
 {
-    public function __construct(private readonly QrCodeService $qrCodes) {}
+    private const QUOTA_LOCK_NAMESPACE = 990001;
 
-    private const QUOTA_LOCK_KEY = 990001;
+    public function __construct(
+        private readonly EventService $events,
+        private readonly QrCodeService $qrCodes,
+    ) {}
 
-    public function list(): Collection
+    public function listForEvent(int $eventId, ?ConfirmationStatus $status): Collection
     {
-        return Invitation::query()
+        $event = $this->events->find($eventId);
+
+        return $event->invitations()
             ->with('user')
+            ->when($status, fn ($query) => $query->where('confirmation_status', $status))
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get();
     }
 
-    public function create(string $badgeId): Invitation
+    public function createForEvent(int $eventId, bool $inviteAll, array $badgeIds): array
     {
-        $user = User::query()->where('badge_id', $badgeId)->first();
+        $event = $this->events->find($eventId);
 
-        if ($user === null) {
-            throw new ResourceNotFoundException("Peserta dengan BADGE {$badgeId} tidak ditemukan");
+        $users = User::query()
+            ->when(! $inviteAll, fn ($query) => $query->whereIn('badge_id', $badgeIds))
+            ->orderBy('id')
+            ->get(['id', 'badge_id']);
+
+        $notFound = $inviteAll
+            ? []
+            : array_values(array_diff($badgeIds, $users->pluck('badge_id')->all()));
+
+        $created = 0;
+
+        foreach ($users->chunk(500) as $chunk) {
+            $created += DB::table('invitations')->insertOrIgnore(
+                $chunk->map(fn (User $user) => [
+                    'event_id' => $event->id,
+                    'user_id' => $user->id,
+                    'code' => Invitation::generateCode(),
+                ])->values()->all()
+            );
         }
 
-        if ($user->invitation()->exists()) {
-            throw $this->duplicateInvitation($badgeId);
-        }
-
-        try {
-            $invitation = $user->invitation()->create([
-                'confirmation_status' => ConfirmationStatus::Pending,
-            ]);
-        } catch (UniqueConstraintViolationException) {
-            throw $this->duplicateInvitation($badgeId);
-        }
-
-        return $invitation->refresh()->setRelation('user', $user);
+        return [
+            'created' => $created,
+            'alreadyInvited' => $users->count() - $created,
+            'notFound' => $notFound,
+        ];
     }
 
-    public function findByBadge(string $badgeId): Invitation
+    public function findByCode(string $code): Invitation
     {
-        $invitation = $this->queryByBadge($badgeId)->with('user')->first();
+        $invitation = Invitation::query()
+            ->with(['user', 'event'])
+            ->where('code', $code)
+            ->first();
 
         if ($invitation === null) {
-            throw $this->accessDenied($badgeId);
+            throw $this->accessDenied();
         }
 
         return $invitation;
     }
 
-    public function confirm(string $badgeId, bool $attending): Invitation
+    public function confirm(string $code, bool $attending): Invitation
     {
-        return DB::transaction(function () use ($badgeId, $attending) {
-            $invitation = $this->queryByBadge($badgeId)->lockForUpdate()->first();
+        return DB::transaction(function () use ($code, $attending) {
+            $invitation = Invitation::query()->where('code', $code)->lockForUpdate()->first();
 
             if ($invitation === null) {
-                throw $this->accessDenied($badgeId);
+                throw $this->accessDenied();
             }
 
             if ($invitation->confirmation_status !== ConfirmationStatus::Pending) {
@@ -79,9 +96,9 @@ class InvitationService
             }
 
             if ($attending) {
-                DB::select('SELECT pg_advisory_xact_lock(?)', [self::QUOTA_LOCK_KEY]);
+                DB::select('SELECT pg_advisory_xact_lock(?, ?)', [self::QUOTA_LOCK_NAMESPACE, $invitation->event_id]);
 
-                if ($this->quota()['remaining'] <= 0) {
+                if ($this->quota($invitation->event)['remaining'] <= 0) {
                     throw new ConflictException('Kuota penuh, konfirmasi kehadiran tidak dapat diproses');
                 }
             }
@@ -91,62 +108,86 @@ class InvitationService
                 'confirmed_at' => now(),
             ]);
 
-            return $invitation->load('user');
+            return $invitation->load(['user', 'event']);
         });
     }
 
-    public function sendEmail(string $badgeId): Invitation
+    public function sendEmails(int $eventId, ?array $badgeIds, bool $resend): array
     {
-        $invitation = $this->findByBadge($badgeId);
-        $email = $invitation->user->email;
+        $event = $this->events->find($eventId);
 
-        if ($email === null) {
-            throw new UnprocessableException("Peserta dengan BADGE {$badgeId} belum memiliki email");
+        $invitations = $event->invitations()
+            ->with('user')
+            ->where('confirmation_status', ConfirmationStatus::Pending)
+            ->when(! $resend, fn ($query) => $query->whereNull('sent_at'))
+            ->when($badgeIds !== null, fn ($query) => $query->whereHas(
+                'user',
+                fn ($userQuery) => $userQuery->whereIn('badge_id', $badgeIds)
+            ))
+            ->orderBy('id')
+            ->get();
+
+        $sent = 0;
+        $failed = [];
+
+        foreach ($invitations as $invitation) {
+            $invitation->setRelation('event', $event);
+
+            if ($invitation->user->email === null) {
+                $failed[] = ['badgeId' => $invitation->user->badge_id, 'reason' => 'Peserta belum memiliki email'];
+
+                continue;
+            }
+
+            try {
+                $this->sendEmail($invitation);
+                $sent++;
+            } catch (Throwable $exception) {
+                Log::error('Gagal mengirim email undangan', [
+                    'invitation_id' => $invitation->id,
+                    'error' => $exception->getMessage(),
+                ]);
+                $failed[] = ['badgeId' => $invitation->user->badge_id, 'reason' => 'Email gagal dikirim'];
+            }
         }
 
-        $invitationUrl = $this->invitationUrl($badgeId);
-
-        Mail::to($email, $invitation->user->name)->send(
-            new InvitationMail($invitation, $invitationUrl, $this->qrCodes->png($invitationUrl))
-        );
-
-        return $invitation;
+        return [
+            'sent' => $sent,
+            'failed' => $failed,
+        ];
     }
 
-    public function quota(): array
+    public function quota(Event $event): array
     {
-        $capacity = (int) config('invitation.capacity');
-        $confirmed = Invitation::query()
+        $confirmed = $event->invitations()
             ->where('confirmation_status', ConfirmationStatus::Hadir)
             ->count();
 
         return [
-            'capacity' => $capacity,
+            'capacity' => $event->capacity,
             'confirmed' => $confirmed,
-            'remaining' => max(0, $capacity - $confirmed),
+            'remaining' => max(0, $event->capacity - $confirmed),
         ];
     }
 
-    public function invitationUrl(string $badgeId): string
+    public function invitationUrl(string $code): string
     {
-        return config('invitation.base_url').'/'.rawurlencode($badgeId);
+        return config('invitation.base_url').'/'.rawurlencode($code);
     }
 
-    private function queryByBadge(string $badgeId): Builder
+    private function sendEmail(Invitation $invitation): void
     {
-        return Invitation::query()->whereIn(
-            'user_id',
-            User::query()->select('id')->where('badge_id', $badgeId)
+        $invitationUrl = $this->invitationUrl($invitation->code);
+
+        Mail::to($invitation->user->email, $invitation->user->name)->send(
+            new InvitationMail($invitation, $invitationUrl, $this->qrCodes->png($invitationUrl))
         );
+
+        $invitation->update(['sent_at' => now()]);
     }
 
-    private function duplicateInvitation(string $badgeId): ConflictException
+    private function accessDenied(): AccessDeniedException
     {
-        return new ConflictException("Undangan untuk BADGE {$badgeId} sudah dibuat");
-    }
-
-    private function accessDenied(string $badgeId): AccessDeniedException
-    {
-        return new AccessDeniedException("Akses ditolak: BADGE {$badgeId} tidak terdaftar dalam daftar undangan");
+        return new AccessDeniedException('Akses ditolak: kode undangan tidak terdaftar dalam daftar undangan');
     }
 }

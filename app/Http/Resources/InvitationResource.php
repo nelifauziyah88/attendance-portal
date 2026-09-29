@@ -12,6 +12,7 @@ class InvitationResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'code' => $this->code,
             'badgeId' => $this->user->badge_id,
             'name' => $this->user->name,
             'department' => $this->user->department,
@@ -19,8 +20,10 @@ class InvitationResource extends JsonResource
             'email' => $this->user->email,
             'confirmationStatus' => $this->confirmation_status->value,
             'confirmedAt' => $this->confirmed_at?->utc()->toIso8601String(),
+            'sentAt' => $this->sent_at?->utc()->toIso8601String(),
             'createdAt' => $this->created_at?->utc()->toIso8601String(),
-            'invitationUrl' => app(InvitationService::class)->invitationUrl($this->user->badge_id),
+            'invitationUrl' => app(InvitationService::class)->invitationUrl($this->code),
+            'event' => EventResource::make($this->whenLoaded('event')),
         ];
     }
 }
