@@ -65,6 +65,18 @@ class InvitationController extends Controller
     }
 
     #[Response(status: 403, description: 'BADGE tidak terdaftar dalam daftar undangan', type: 'array{success: false, message: string, data: null}')]
+    #[Response(status: 422, description: 'Peserta belum memiliki email', type: 'array{success: false, message: string, data: null}')]
+    public function sendEmail(string $badgeId): JsonResponse
+    {
+        $invitation = $this->invitations->sendEmail($badgeId);
+
+        return ApiResponse::success(
+            InvitationResource::make($invitation),
+            "Undangan berhasil dikirim ke {$invitation->user->email}"
+        );
+    }
+
+    #[Response(status: 403, description: 'BADGE tidak terdaftar dalam daftar undangan', type: 'array{success: false, message: string, data: null}')]
     #[Response(status: 409, description: 'Undangan sudah dikonfirmasi atau kuota penuh', type: 'array{success: false, message: string, data: null}')]
     public function confirm(ConfirmInvitationRequest $request, string $badgeId): JsonResponse
     {

@@ -6,15 +6,20 @@ use App\Enums\ConfirmationStatus;
 use App\Exceptions\AccessDeniedException;
 use App\Exceptions\ConflictException;
 use App\Exceptions\ResourceNotFoundException;
+use App\Exceptions\UnprocessableException;
+use App\Mail\InvitationMail;
 use App\Models\Invitation;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class InvitationService
 {
+    public function __construct(private readonly QrCodeService $qrCodes) {}
+
     private const QUOTA_LOCK_KEY = 990001;
 
     public function list(): Collection
@@ -88,6 +93,24 @@ class InvitationService
 
             return $invitation->load('user');
         });
+    }
+
+    public function sendEmail(string $badgeId): Invitation
+    {
+        $invitation = $this->findByBadge($badgeId);
+        $email = $invitation->user->email;
+
+        if ($email === null) {
+            throw new UnprocessableException("Peserta dengan BADGE {$badgeId} belum memiliki email");
+        }
+
+        $invitationUrl = $this->invitationUrl($badgeId);
+
+        Mail::to($email, $invitation->user->name)->send(
+            new InvitationMail($invitation, $invitationUrl, $this->qrCodes->png($invitationUrl))
+        );
+
+        return $invitation;
     }
 
     public function quota(): array
