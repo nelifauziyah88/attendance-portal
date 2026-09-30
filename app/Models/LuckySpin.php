@@ -1,15 +1,19 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Invitation extends Model
+class LuckySpin extends Model
 {
-    protected $fillable = ['badge_id'];
+    protected $fillable = ['badge_id', 'prize_id', 'won_at'];
 
     public function user()
     {
         return $this->belongsTo(User::class, 'badge_id', 'badge_id');
+    }
+
+    public function prize()
+    {
+        return $this->belongsTo(Prize::class);
     }
 }

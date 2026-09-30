@@ -26,7 +26,7 @@
 
     $circles = ['left-6 top-0', 'left-0 top-8', 'left-12 top-8', 'left-6 top-16'];
 @endphp
-<body class="flex min-h-screen flex-col bg-[#f5f8ff] font-normal text-[#26346b] antialiased [font-family:'Plus_Jakarta_Sans',ui-sans-serif,system-ui,sans-serif]">
+<body class="flex min-h-screen flex-col bg-[#f5f8ff] font-normal text-[#26346b] antialiased font-['Plus_Jakarta_Sans',ui-sans-serif,system-ui,sans-serif]">
     <header class="flex h-16 shrink-0 items-center justify-between bg-white px-6 shadow-sm shadow-blue-100/60 sm:px-14">
         <div class="flex items-center gap-3">
             <span class="grid size-10 place-items-center rounded-xl bg-[#3563ff] text-lg font-semibold text-white shadow-lg shadow-blue-400/30 transition duration-300 hover:rotate-6 hover:scale-110">E</span>
@@ -68,21 +68,25 @@
                 <h2 class="mt-3 text-3xl font-semibold tracking-tight">Sign in to your account</h2>
                 <p class="mt-2 text-sm text-slate-500">Enter your credentials to continue.</p>
 
-                <form method="POST" action="#" class="mt-8 space-y-5 rounded-3xl border border-slate-200/80 bg-white p-8 shadow-xl shadow-blue-100/60">
+                @if (session('success'))
+                    <p role="status" class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{{ session('success') }}</p>
+                @endif
+
+                <form method="POST" action="{{ route('admin.login.store') }}" class="mt-8 space-y-5 rounded-3xl border border-slate-200/80 bg-white p-8 shadow-xl shadow-blue-100/60">
                     @csrf
 
                     <div class="flex flex-col gap-1.5">
-                        <label for="username" class="text-xs font-medium">Username</label>
+                        <label for="email" class="text-xs font-medium">Email</label>
                         <input
-                            id="username"
-                            name="username"
-                            type="text"
-                            value="{{ old('username') }}"
-                            placeholder="Enter your username"
-                            autocomplete="username"
+                            id="email"
+                            name="email"
+                            type="email"
+                            value="{{ old('email') }}"
+                            placeholder="Enter your admin email"
+                            autocomplete="email"
                             class="h-[52px] w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 text-sm outline-none transition duration-300 placeholder:text-slate-400 focus:-translate-y-0.5 focus:border-[#3563ff] focus:bg-white focus:ring-4 focus:ring-blue-100"
                         >
-                        @error('username')
+                        @error('email')
                             <p class="text-xs text-red-500">{{ $message }}</p>
                         @enderror
                     </div>
@@ -113,7 +117,7 @@
                             <input type="checkbox" name="remember" class="size-5 cursor-pointer rounded-md border-slate-300 accent-[#3563ff]">
                             Remember me
                         </label>
-                        <a href="#" class="text-xs font-medium text-[#3563ff] transition duration-300 hover:text-[#2a52e6] hover:underline">Forgot password?</a>
+                        <span class="text-xs text-slate-400">Admin account only</span>
                     </div>
 
                     <button type="submit" class="flex h-14 w-full items-center justify-center rounded-xl bg-[#3563ff] text-sm font-medium text-white shadow-lg shadow-blue-400/30 transition duration-300 hover:-translate-y-0.5 hover:bg-[#2a52e6] hover:shadow-xl hover:shadow-blue-400/40 active:scale-[.98]">

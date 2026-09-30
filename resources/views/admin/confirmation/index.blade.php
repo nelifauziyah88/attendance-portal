@@ -31,57 +31,6 @@
         'declined' => ['label' => 'Not attending', 'class' => 'bg-orange-50 text-red-600'],
     ];
 
-    $employees = $employees ?? [
-        [
-            'badge' => 'BDG-1001',
-            'name' => 'Neli Fauziyah',
-            'position' => 'IT Intern',
-            'department' => 'IT',
-            'status' => 'attending',
-        ],
-        [
-            'badge' => 'BDG-1002',
-            'name' => 'Alya Putri',
-            'position' => 'Project Engineer',
-            'department' => 'Engineering',
-            'status' => 'attending',
-        ],
-        [
-            'badge' => 'BDG-1003',
-            'name' => 'Rizky Pratama',
-            'position' => 'QA/QC Inspector',
-            'department' => 'Quality Control',
-            'status' => 'pending',
-        ],
-        [
-            'badge' => 'BDG-1004',
-            'name' => 'Sarah Amelia',
-            'position' => 'HR Officer',
-            'department' => 'Human Resources',
-            'status' => 'declined',
-        ],
-        [
-            'badge' => 'BDG-1005',
-            'name' => 'Dimas Saputra',
-            'position' => 'System Analyst',
-            'department' => 'IT',
-            'status' => 'attending',
-        ],
-        [
-            'badge' => 'BDG-1006',
-            'name' => 'Kevin Wijaya',
-            'position' => 'Supervisor',
-            'department' => 'Operations',
-            'status' => 'pending',
-        ],
-        [
-            'badge' => 'BDG-1007',
-            'name' => 'Putri Maharani',
-            'position' => 'Admin Staff',
-            'department' => 'Administration',
-            'status' => 'attending',
-        ],
-    ];
 @endphp
 
 <body
@@ -120,7 +69,7 @@
                             </thead>
 
                             <tbody>
-                                @foreach ($employees as $employee)
+                                @forelse ($employees as $employee)
                                     @php($status = $statuses[$employee['status']])
                                     <tr class="transition duration-300 even:bg-slate-50/60 hover:bg-blue-50/60 [animation:rise_.6s_ease-out_both]"
                                         style="animation-delay: {{ 0.2 + $loop->index * 0.06 }}s">
@@ -143,10 +92,15 @@
                                                 class="inline-flex items-center whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium transition duration-300 hover:scale-105 {{ $status['class'] }}">{{ $status['label'] }}</span>
                                         </td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="{{ count($columns) }}" class="px-5 py-12 text-center text-sm text-slate-500">No RSVP records found.</td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
+                    <div class="mt-5">{{ $employees->links() }}</div>
                 </section>
             </main>
         </div>

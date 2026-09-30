@@ -66,18 +66,18 @@
             'subtitle' => "Based on {$invited} invited employees",
             'bars' => [
                 ['label' => 'Confirmed attending', 'percent' => $confirmedRate, 'primary' => true],
-                ['label' => 'Not attending', 'percent' => 100 - $confirmedRate, 'primary' => false],
+                ['label' => 'Not attending', 'percent' => $declinedRate, 'primary' => false],
             ],
-            'footer' => [$confirmed . ' attending', $declined . ' declined'],
+            'footer' => [number_format($confirmed) . ' attending', number_format($declined) . ' declined'],
         ],
         [
             'title' => 'On-site attendance',
             'subtitle' => "Based on {$confirmed} confirmed attendees",
             'bars' => [
                 ['label' => 'Checked in', 'percent' => $checkedRate, 'primary' => true],
-                ['label' => 'Not checked in yet', 'percent' => 100 - $checkedRate, 'primary' => false],
+                ['label' => 'Not checked in yet', 'percent' => $notCheckedRate, 'primary' => false],
             ],
-            'footer' => [$checkedIn . ' checked in', $pending . ' pending'],
+            'footer' => [number_format($checkedIn) . ' checked in', number_format($pending) . ' pending'],
         ],
     ];
 
@@ -179,7 +179,7 @@
                     @endforeach
                 </section>
 
-                <p class="mt-8 text-xs text-slate-400">Last updated: Event day &middot; Values shown are sample data</p>
+                <p class="mt-8 text-xs text-slate-400">Statistics are based on the latest stored records.</p>
             </main>
         </div>
     </div>

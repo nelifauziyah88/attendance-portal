@@ -11,20 +11,9 @@
 </head>
 @php
     $event = ['name' => ''];
-
     $columns = ['NO.', 'BADGE ID', 'NAME', 'POSITION', 'DEPARTMENT', 'CHECK-IN'];
-
-    $employees = $employees ?? [
-        ['badge' => 'BDG-1001', 'name' => 'Neli Fauziyah', 'position' => 'IT Intern', 'department' => 'IT', 'checkin' => '6:47 PM'],
-        ['badge' => 'BDG-1002', 'name' => 'Alya Putri', 'position' => 'Project Engineer', 'department' => 'Engineering', 'checkin' => '6:52 PM'],
-        ['badge' => 'BDG-1005', 'name' => 'Dimas Saputra', 'position' => 'System Analyst', 'department' => 'IT', 'checkin' => '6:58 PM'],
-        ['badge' => 'BDG-1007', 'name' => 'Putri Maharani', 'position' => 'Admin Staff', 'department' => 'Administration', 'checkin' => '7:02 PM'],
-        ['badge' => 'BDG-1011', 'name' => 'Bima Kurniawan', 'position' => 'Supervisor', 'department' => 'Operations', 'checkin' => '7:04 PM'],
-        ['badge' => 'BDG-1014', 'name' => 'Siti Rahma', 'position' => 'HR Officer', 'department' => 'Human Resources', 'checkin' => '7:09 PM'],
-        ['badge' => 'BDG-1018', 'name' => 'Farhan Akbar', 'position' => 'QA/QC Inspector', 'department' => 'Quality Control', 'checkin' => '7:12 PM'],
-    ];
 @endphp
-<body class="bg-[#f5f8ff] font-normal text-[#26346b] antialiased [font-family:'Plus_Jakarta_Sans',ui-sans-serif,system-ui,sans-serif]">
+<body class="bg-[#f5f8ff] font-normal text-[#26346b] antialiased font-['Plus_Jakarta_Sans',ui-sans-serif,system-ui,sans-serif]">
     <div class="group/shell flex min-h-screen flex-col">
         <input type="checkbox" id="sidebar-toggle" class="sr-only">
 
@@ -53,19 +42,24 @@
                             </thead>
 
                             <tbody>
-                                @foreach ($employees as $employee)
-                                    <tr class="transition duration-300 even:bg-slate-50/60 hover:bg-blue-50/60 [animation:rise_.6s_ease-out_both]" style="animation-delay: {{ 0.2 + $loop->index * 0.06 }}s">
+                                @forelse ($attendances as $attendance)
+                                    <tr class="transition duration-300 even:bg-slate-50/60 hover:bg-blue-50/60 animate-[rise_.6s_ease-out_both]" style="animation-delay: {{ 0.2 + $loop->index * 0.06 }}s">
                                         <td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ sprintf('%02d', $loop->iteration) }}</td>
-                                        <td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $employee['badge'] }}</td>
-                                        <td class="border-b border-slate-100 px-3 py-4 font-semibold text-[#26346b] sm:px-5 sm:py-8">{{ $employee['name'] }}</td>
-                                        <td class="border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $employee['position'] }}</td>
-                                        <td class="border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $employee['department'] }}</td>
-                                        <td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $employee['checkin'] }}</td>
+                                        <td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $attendance['badge'] }}</td>
+                                        <td class="border-b border-slate-100 px-3 py-4 font-semibold text-[#26346b] sm:px-5 sm:py-8">{{ $attendance['name'] }}</td>
+                                        <td class="border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $attendance['position'] }}</td>
+                                        <td class="border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $attendance['department'] }}</td>
+                                        <td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $attendance['checkin'] }}</td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="{{ count($columns) }}" class="px-5 py-12 text-center text-sm text-slate-500">No attendance records found.</td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
+                    <div class="mt-5">{{ $attendances->links() }}</div>
                 </section>
             </main>
         </div>

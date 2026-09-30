@@ -29,7 +29,7 @@
             </div>
         </div>
 
-        <form method="POST" action="#" class="shrink-0">
+        <form method="POST" action="{{ route('admin.logout') }}">
             @csrf
             <button type="submit" class="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium transition duration-300 hover:-translate-y-0.5 hover:border-[#3563ff] hover:text-[#3563ff] hover:shadow-lg hover:shadow-blue-100 active:scale-95">Logout</button>
         </form>

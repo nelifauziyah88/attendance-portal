@@ -1,12 +1,11 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Invitation extends Model
+class Confirmation extends Model
 {
-    protected $fillable = ['badge_id'];
+    protected $fillable = ['badge_id', 'is_attending', 'confirmed_at'];
 
     public function user()
     {

@@ -1,12 +1,13 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Invitation extends Model
+class Attendance extends Model
 {
-    protected $fillable = ['badge_id'];
+    protected $fillable = ['badge_id', 'check_in_at'];
+
+    protected $casts = ['check_in_at' => 'datetime'];
 
     public function user()
     {

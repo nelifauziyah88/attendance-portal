@@ -14,15 +14,6 @@
 
     $columns = ['NO.', 'BADGE ID', 'NAME', 'POSITION', 'DEPARTMENT'];
 
-    $employees = $employees ?? [
-        ['badge' => 'BDG-1001', 'name' => 'Neli Fauziyah', 'position' => 'IT Intern', 'department' => 'Information Technology'],
-        ['badge' => 'BDG-1002', 'name' => 'Alya Putri', 'position' => 'Project Engineer', 'department' => 'Engineering'],
-        ['badge' => 'BDG-1003', 'name' => 'Rizky Pratama', 'position' => 'QA/QC Inspector', 'department' => 'Quality Control'],
-        ['badge' => 'BDG-1004', 'name' => 'Sarah Amelia', 'position' => 'HR Officer', 'department' => 'Human Resources'],
-        ['badge' => 'BDG-1005', 'name' => 'Dimas Saputra', 'position' => 'System Analyst', 'department' => 'Information Technology'],
-        ['badge' => 'BDG-1006', 'name' => 'Kevin Wijaya', 'position' => 'Supervisor', 'department' => 'Operations'],
-        ['badge' => 'BDG-1007', 'name' => 'Putri Maharani', 'position' => 'Administrative Staff', 'department' => 'Administration'],
-    ];
 @endphp
 <body class="bg-[#f5f8ff] font-normal text-[#26346b] antialiased [font-family:'Plus_Jakarta_Sans',ui-sans-serif,system-ui,sans-serif]">
     <div class="group/shell flex min-h-screen flex-col">
@@ -53,18 +44,23 @@
                             </thead>
 
                             <tbody>
-                                @foreach ($employees as $employee)
+                                @forelse ($employees as $employee)
                                     <tr class="transition duration-300 even:bg-slate-50/60 hover:bg-blue-50/60 [animation:rise_.6s_ease-out_both]" style="animation-delay: {{ 0.2 + $loop->index * 0.06 }}s">
-                                        <td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ sprintf('%02d', $loop->iteration) }}</td>
+                                        <td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ sprintf('%02d', $employees->firstItem() + $loop->index) }}</td>
                                         <td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $employee['badge'] }}</td>
                                         <td class="border-b border-slate-100 px-3 py-4 font-semibold text-[#26346b] sm:px-5 sm:py-8">{{ $employee['name'] }}</td>
                                         <td class="border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $employee['position'] }}</td>
                                         <td class="border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $employee['department'] }}</td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="{{ count($columns) }}" class="px-5 py-12 text-center text-sm text-slate-500">No employees found.</td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
+                    <div class="mt-5">{{ $employees->links() }}</div>
                 </section>
             </main>
         </div>
