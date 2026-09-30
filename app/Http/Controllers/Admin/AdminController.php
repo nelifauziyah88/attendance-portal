@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Invitation;
 use App\Models\Confirmation;
 use App\Models\Attendance;
+use App\Services\LuckySpinService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -142,5 +143,33 @@ class AdminController extends Controller
         });
 
         return view('admin.attendance.index', compact('attendances', 'search'));
+    }
+
+    public function luckySpin(LuckySpinService $luckySpin)
+    {
+        if (Auth::user()?->role !== 'ADMIN') {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.lucky_spin.lucky_spin', [
+            'displayUrl' => route('admin.lucky-spin.display'),
+            'prizes' => $luckySpin->prizes(),
+            'participants' => $luckySpin->participants(),
+            'recentWinners' => $luckySpin->recentWinners(),
+        ]);
+    }
+
+    public function luckySpinDisplay(LuckySpinService $luckySpin)
+    {
+        if (Auth::user()?->role !== 'ADMIN') {
+            return redirect()->route('admin.login');
+        }
+
+        return view('admin.lucky_spin.lucky_spin_display', [
+            'draw' => $luckySpin->winnerCount() + 1,
+            'eligible' => $luckySpin->eligibleCount(),
+            'prizes' => $luckySpin->prizes(),
+            'participants' => $luckySpin->participants(),
+        ]);
     }
 }
