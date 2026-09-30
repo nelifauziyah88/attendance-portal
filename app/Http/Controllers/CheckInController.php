@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Models\MasterAttendance;
 use App\Models\Attendance;
 use App\Models\Confirmation;
 use Illuminate\Http\Request;
@@ -15,9 +15,9 @@ class CheckInController extends Controller
 
     public function findEmployee(string $badgeId)
     {
-        $user = User::where('badge_id', $badgeId)->first();
+        $employee = MasterAttendance::where('badge_id', $badgeId)->first();
 
-        if (! $user) {
+        if (! $employee) {
             return response()->json([
                 'success' => false,
                 'message' => 'Badge ID tidak ditemukan dalam data karyawan.',
@@ -40,10 +40,10 @@ class CheckInController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'badge_id' => $user->badge_id,
-                'name' => $user->name,
-                'position' => $user->position ?? '-',
-                'department' => $user->department ?? '-',
+                'badge_id' => $employee->badge_id,
+                'name' => $employee->name,
+                'position' => $employee->position ?? '-',
+                'department' => $employee->department ?? '-',
                 'is_checked_in' => $attendance !== null,
                 'checked_in_at' => $attendance?->check_in_at?->format('H:i:s - d M Y'),
             ],
@@ -58,8 +58,8 @@ class CheckInController extends Controller
             'badge_id.required' => 'Badge ID wajib diisi.',
         ]);
 
-        $user = User::where('badge_id',$request->badge_id)->first();
-        if (!$user) {
+        $employee = MasterAttendance::where('badge_id', $request->badge_id)->first();
+        if (!$employee) {
             return back()->with('error', 'Badge ID tidak terdaftar dalam sistem.');
         }
 
@@ -73,7 +73,7 @@ class CheckInController extends Controller
 
         $existing = Attendance::where('badge_id',$request->badge_id)->first();
         if ($existing) {
-            return back()->with('error', "Karyawan {$user->name} sudah melakukan Check-In sebelumnya pada jam {$existing->check_in_at->format('H:i')} WIB.");
+            return back()->with('error', "Karyawan {$employee->name} sudah melakukan Check-In sebelumnya pada jam {$existing->check_in_at->format('H:i')} WIB.");
         }
 
         Attendance::create([
@@ -81,6 +81,6 @@ class CheckInController extends Controller
             'check_in_at' => now(),
         ]);
 
-        return back()->with('success', "Check-In Berhasil! Selamat datang, {$user->name}. Silakan masuk ke area acara.");
+        return back()->with('success', "Check-In Berhasil! Selamat datang, {$employee->name}. Silakan masuk ke area acara.");
     }
 }

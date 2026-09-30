@@ -112,11 +112,7 @@
                         @enderror
                     </div>
 
-                    <div class="flex items-center justify-between text-sm">
-                        <label class="flex cursor-pointer items-center gap-2 text-slate-500">
-                            <input type="checkbox" name="remember" class="size-5 cursor-pointer rounded-md border-slate-300 accent-[#3563ff]">
-                            Remember me
-                        </label>
+                    <div class="flex justify-end text-sm">
                         <span class="text-xs text-slate-400">Admin account only</span>
                     </div>
 

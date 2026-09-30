@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Models\MasterAttendance;
 use App\Models\Confirmation;
-use App\Models\Invitation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -18,9 +17,9 @@ class InvitationController extends Controller
 public function findEmployee($badgeId)
     {
         try {
-            $user = User::where('badge_id', $badgeId)->first();
+            $employee = MasterAttendance::where('badge_id', $badgeId)->first();
 
-            if (!$user) {
+            if (!$employee) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Badge ID tidak ditemukan dalam data karyawan.'
@@ -32,10 +31,10 @@ public function findEmployee($badgeId)
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'badge_id'      => $user->badge_id,
-                    'name'          => $user->name,
-                    'position'      => $user->position ?? '-',
-                    'department'    => $user->department ?? '-',
+                    'badge_id'      => $employee->badge_id,
+                    'name'          => $employee->name,
+                    'position'      => $employee->position ?? '-',
+                    'department'    => $employee->department ?? '-',
                     'has_confirmed' => $existingConfirmation ? true : false,
                     'attendance'    => $existingConfirmation ? ($existingConfirmation->is_attending ? 'yes' : 'no') : null,
                 ]
@@ -59,8 +58,8 @@ public function findEmployee($badgeId)
             'attendance.required' => 'Silakan pilih status kehadiran Anda.',
         ]);
 
-        $user = User::where('badge_id', $request->badge_id)->first();
-        if (!$user) {
+        $employee = MasterAttendance::where('badge_id', $request->badge_id)->first();
+        if (!$employee) {
             return back()->withInput()->with('error', 'Badge ID tidak ditemukan dalam sistem.');
         }
 
@@ -76,6 +75,6 @@ public function findEmployee($badgeId)
 
         $statusText = $request->attendance === 'yes' ? 'Hadir' : 'Tidak Hadir';
 
-        return back()->with('success', "Terima kasih {$user->name}! Konfirmasi kehadiran Anda ($statusText) telah berhasil disimpan.");
+        return back()->with('success', "Terima kasih {$employee->name}! Konfirmasi kehadiran Anda ($statusText) telah berhasil disimpan.");
     }
 }

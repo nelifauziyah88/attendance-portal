@@ -4,7 +4,7 @@ namespace App\Services;
 use App\Models\Attendance;
 use App\Models\LuckySpin;
 use App\Models\Prize;
-use App\Models\User;
+use App\Models\MasterAttendance;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
@@ -42,7 +42,7 @@ class LuckySpinService
             $prize->decrement('stock');
 
             // 5. Ambil identitas pemenang dari DB Master
-            $winnerUser = User::where('badge_id', $eligibleParticipant->badge_id)->first();
+            $winnerUser = MasterAttendance::where('badge_id', $eligibleParticipant->badge_id)->first();
 
             return [
                 'winner' => $winnerUser,

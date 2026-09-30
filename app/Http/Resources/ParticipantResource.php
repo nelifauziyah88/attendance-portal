@@ -15,7 +15,9 @@ class ParticipantResource extends JsonResource
             'name' => $this->name,
             'department' => $this->department,
             'position' => $this->position,
-            'email' => $this->email,
+            'project' => $this->project,
+            'company' => $this->company,
+            'isManager' => $this->is_manager,
             'createdAt' => $this->created_at?->utc()->toIso8601String(),
         ];
     }

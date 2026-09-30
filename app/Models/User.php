@@ -6,19 +6,17 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class User extends Authenticatable
 {
-    // Tentukan koneksi database khusus untuk model ini
-    protected $connection = 'pgsql_portal';
     protected $table = 'users';
+    public $timestamps = false;
 
-    protected $fillable = [
-        'badge_id',
-        'name',
-        'email',
-        'password',
-        'department',
-        'position',
-        'role',
-    ];
+    protected $fillable = ['name', 'email', 'password'];
+
+    protected $hidden = ['password'];
+
+    protected function casts(): array
+    {
+        return ['password' => 'hashed'];
+    }
 }
 
 

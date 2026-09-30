@@ -2,7 +2,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\MasterAttendance;
 use App\Models\Invitation;
 use App\Models\Confirmation;
 use App\Models\Attendance;
@@ -13,7 +13,7 @@ class AdminController extends Controller
 {
     public function dashboard()
     {
-        if (Auth::user()?->role !== 'ADMIN') {
+        if (! Auth::check()) {
             return redirect()->route('admin.login');
         }
 
@@ -46,13 +46,13 @@ class AdminController extends Controller
 
     public function employee(Request $request)
     {
-        if (Auth::user()?->role !== 'ADMIN') {
+        if (! Auth::check()) {
             return redirect()->route('admin.login');
         }
 
         $search = $request->query('search');
 
-        $employees = User::query()->when($search, function ($query, $search) {
+        $employees = MasterAttendance::query()->when($search, function ($query, $search) {
             $query->where(function ($query) use ($search) {
                 $query->where('name', 'ilike', "%{$search}%")
                     ->orWhere('badge_id', 'ilike', "%{$search}%")
@@ -60,11 +60,11 @@ class AdminController extends Controller
             });
         })->paginate(15)->withQueryString();
 
-        $employees->getCollection()->transform(fn (User $user) => [
-            'badge' => $user->badge_id,
-            'name' => $user->name,
-            'position' => $user->position ?? '-',
-            'department' => $user->department ?? '-',
+        $employees->getCollection()->transform(fn (MasterAttendance $employee) => [
+            'badge' => $employee->badge_id,
+            'name' => $employee->name,
+            'position' => $employee->position ?? '-',
+            'department' => $employee->department ?? '-',
         ]);
 
         return view('admin.employee.index', compact('employees', 'search'));
@@ -72,40 +72,57 @@ class AdminController extends Controller
 
     public function confirmation(Request $request)
     {
-        if (Auth::user()?->role !== 'ADMIN') {
+        if (! Auth::check()) {
             return redirect()->route('admin.login');
         }
 
         $search = $request->query('search');
         $status = $request->query('status');
 
-        $confirmations = Confirmation::query()->get()->keyBy('badge_id');
-        $query = User::query()->when($search, function ($query, $search) {
-            $query->where(function ($query) use ($search) {
-                $query->where('name', 'ilike', "%{$search}%")
-                    ->orWhere('badge_id', 'ilike', "%{$search}%")
-                    ->orWhere('department', 'ilike', "%{$search}%");
+        $confirmations = Confirmation::query()
+            ->select('badge_id', 'is_attending', 'confirmed_at');
+
+        $query = MasterAttendance::query()
+            ->leftJoinSub($confirmations, 'rsvp', function ($join) {
+                $join->on('master_attendance.badge_id', '=', 'rsvp.badge_id');
+            })
+            ->select([
+                'master_attendance.*',
+                'rsvp.is_attending as rsvp_is_attending',
+                'rsvp.confirmed_at as rsvp_confirmed_at',
+            ])
+            ->when($search, function ($query, $search) {
+                $term = '%'.mb_strtolower(trim($search)).'%';
+                $query->where(function ($query) use ($term) {
+                    $query->whereRaw('LOWER(master_attendance.name) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(master_attendance.badge_id) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(master_attendance.department) LIKE ?', [$term]);
+                });
             });
-        });
 
         if ($status === 'attending') {
-            $query->whereIn('badge_id', $confirmations->filter(fn ($item) => $item->is_attending)->keys());
+            $query->where('rsvp.is_attending', true);
         } elseif ($status === 'declined') {
-            $query->whereIn('badge_id', $confirmations->reject(fn ($item) => $item->is_attending)->keys());
+            $query->where('rsvp.is_attending', false);
         } elseif ($status === 'pending') {
-            $query->whereNotIn('badge_id', $confirmations->keys());
+            $query->whereNull('rsvp.badge_id');
         }
 
-        $employees = $query->orderBy('name')->paginate(15)->withQueryString();
-        $employees->getCollection()->transform(function (User $user) use ($confirmations) {
-            $confirmation = $confirmations->get($user->badge_id);
+        $employees = $query
+            ->orderByRaw('CASE WHEN rsvp.confirmed_at IS NULL THEN 1 ELSE 0 END')
+            ->orderByDesc('rsvp.confirmed_at')
+            ->orderBy('master_attendance.name')
+            ->paginate(15)
+            ->withQueryString();
 
+        $employees->getCollection()->transform(function (MasterAttendance $employee) {
+            $isAttending = $employee->rsvp_is_attending;
             return [
-                'badge' => $user->badge_id,
-                'name' => $user->name,
-                'position' => $user->position ?? '-',
-                'department' => $user->department ?? '-',
-                'status' => $confirmation === null ? 'pending' : ($confirmation->is_attending ? 'attending' : 'declined'),
+                'badge' => $employee->badge_id,
+                'name' => $employee->name,
+                'position' => $employee->position ?? '-',
+                'department' => $employee->department ?? '-',
+                'status' => $isAttending === null ? 'pending' : ((bool) $isAttending ? 'attending' : 'declined'),
             ];
         });
 
@@ -114,7 +131,7 @@ class AdminController extends Controller
 
     public function attendance(Request $request)
     {
-        if (Auth::user()?->role !== 'ADMIN') {
+        if (! Auth::check()) {
             return redirect()->route('admin.login');
         }
 
@@ -127,16 +144,16 @@ class AdminController extends Controller
             ->withQueryString();
 
         $badgeIds = $attendances->pluck('badge_id')->toArray();
-        $users = User::whereIn('badge_id', $badgeIds)->get()->keyBy('badge_id');
+        $employees = MasterAttendance::whereIn('badge_id', $badgeIds)->get()->keyBy('badge_id');
 
-        $attendances->getCollection()->transform(function ($item) use ($users) {
-            $user = $users->get($item->badge_id);
+        $attendances->getCollection()->transform(function ($item) use ($employees) {
+            $employee = $employees->get($item->badge_id);
 
             return [
                 'badge' => $item->badge_id,
-                'name' => $user?->name ?? '-',
-                'position' => $user?->position ?? '-',
-                'department' => $user?->department ?? '-',
+                'name' => $employee?->name ?? '-',
+                'position' => $employee?->position ?? '-',
+                'department' => $employee?->department ?? '-',
                 'checkin' => $item->check_in_at?->format('H:i:s - d M Y') ?? '-',
             ];
         });

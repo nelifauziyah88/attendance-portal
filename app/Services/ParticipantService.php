@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\ConflictException;
-use App\Models\User;
+use App\Models\MasterAttendance;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 
@@ -11,46 +11,33 @@ class ParticipantService
 {
     public function list(): Collection
     {
-        return User::query()
+        return MasterAttendance::query()
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get();
     }
 
-    public function create(array $attributes): User
+    public function create(array $attributes): MasterAttendance
     {
         $badgeId = $attributes['badgeId'];
 
-        $email = isset($attributes['email']) ? strtolower($attributes['email']) : null;
-
-        if (User::query()->where('badge_id', $badgeId)->exists()) {
+        if (MasterAttendance::query()->where('badge_id', $badgeId)->exists()) {
             throw $this->duplicateBadge($badgeId);
         }
 
-        if ($email !== null && User::query()->where('email', $email)->exists()) {
-            throw $this->duplicateEmail($email);
-        }
-
         try {
-            return User::query()->create([
+            return MasterAttendance::query()->create([
                 'badge_id' => $badgeId,
                 'name' => $attributes['name'],
                 'department' => $attributes['department'] ?? null,
                 'position' => $attributes['position'] ?? null,
-                'email' => $email,
+                'project' => $attributes['project'] ?? null,
+                'company' => $attributes['company'] ?? null,
+                'is_manager' => $attributes['isManager'] ?? false,
             ]);
         } catch (UniqueConstraintViolationException $exception) {
-            if ($email !== null && str_contains($exception->getMessage(), 'email')) {
-                throw $this->duplicateEmail($email);
-            }
-
             throw $this->duplicateBadge($badgeId);
         }
-    }
-
-    private function duplicateEmail(string $email): ConflictException
-    {
-        return new ConflictException("Email {$email} sudah terdaftar");
     }
 
     private function duplicateBadge(string $badgeId): ConflictException

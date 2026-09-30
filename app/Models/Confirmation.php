@@ -9,6 +9,6 @@ class Confirmation extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'badge_id', 'badge_id');
+        return $this->belongsTo(MasterAttendance::class, 'badge_id', 'badge_id');
     }
 }

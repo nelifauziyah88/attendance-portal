@@ -43,17 +43,6 @@
     </style>
 </head>
 @php
-    $event = ['name' => 'Annual Gala Dinner'];
-
-    $invited = 900;
-    $confirmed = 720;
-    $checkedIn = 540;
-
-    $declined = $invited - $confirmed;
-    $pending = $confirmed - $checkedIn;
-    $confirmedRate = round(($confirmed / $invited) * 100);
-    $checkedRate = round(($checkedIn / $confirmed) * 100);
-
     $stats = [
         ['label' => 'INVITED EMPLOYEES', 'value' => $invited, 'note' => 'Total invitations sent'],
         ['label' => 'CONFIRMED ATTENDING', 'value' => $confirmed, 'note' => $confirmedRate . '% of invited'],

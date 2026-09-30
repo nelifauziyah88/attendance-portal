@@ -114,19 +114,19 @@ return [
         //     'sslmode' => env('DB_SSLMODE', 'prefer'),
         // ],
 
-            'pgsql_portal' => [
-            'driver' => 'pgsql',
-            'host' => env('DB_PORTAL_HOST', '127.0.0.1'),
-            'port' => env('DB_PORTAL_PORT', '5432'),
-            'database' => env('DB_PORTAL_DATABASE', 'portal_attendance'),
-            'username' => env('DB_PORTAL_USERNAME', 'postgres'),
-            'password' => env('DB_PORTAL_PASSWORD', ''),
-            'charset' => 'utf8',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'search_path' => 'public',
-            'sslmode' => 'prefer',
-        ],
+        //     'pgsql_portal' => [
+        //     'driver' => 'pgsql',
+        //     'host' => env('DB_PORTAL_HOST', '127.0.0.1'),
+        //     'port' => env('DB_PORTAL_PORT', '5432'),
+        //     'database' => env('DB_PORTAL_DATABASE', 'portal_attendance'),
+        //     'username' => env('DB_PORTAL_USERNAME', 'postgres'),
+        //     'password' => env('DB_PORTAL_PASSWORD', ''),
+        //     'charset' => 'utf8',
+        //     'prefix' => '',
+        //     'prefix_indexes' => true,
+        //     'search_path' => 'public',
+        //     'sslmode' => 'prefer',
+        // ],
 
         'sqlsrv' => [
             'driver' => 'sqlsrv',

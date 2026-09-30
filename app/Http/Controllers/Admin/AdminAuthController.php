@@ -10,7 +10,7 @@ class AdminAuthController extends Controller
 {
     public function showLoginForm()
     {
-        if (Auth::user()?->role === 'ADMIN') {
+        if (Auth::check()) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -28,7 +28,7 @@ class AdminAuthController extends Controller
             'password.required' => 'Kata sandi wajib diisi.',
         ]);
 
-        if (Auth::attempt($credentials + ['role' => 'ADMIN'], $request->boolean('remember'))) {
+        if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
 
             return redirect()->intended(route('admin.dashboard'))
@@ -42,7 +42,7 @@ class AdminAuthController extends Controller
 
     public function dashboard()
     {
-        if (Auth::user()?->role !== 'ADMIN') {
+        if (! Auth::check()) {
             return redirect()->route('admin.login');
         }
 

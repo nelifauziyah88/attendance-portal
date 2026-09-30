@@ -8,7 +8,7 @@ use App\Exceptions\ConflictException;
 use App\Mail\InvitationMail;
 use App\Models\Event;
 use App\Models\Invitation;
-use App\Models\User;
+use App\Models\MasterAttendance;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -40,7 +40,7 @@ class InvitationService
     {
         $event = $this->events->find($eventId);
 
-        $users = User::query()
+        $users = MasterAttendance::query()
             ->when(! $inviteAll, fn ($query) => $query->whereIn('badge_id', $badgeIds))
             ->orderBy('id')
             ->get(['id', 'badge_id']);
@@ -53,7 +53,7 @@ class InvitationService
 
         foreach ($users->chunk(500) as $chunk) {
             $created += DB::table('invitations')->insertOrIgnore(
-                $chunk->map(fn (User $user) => [
+                $chunk->map(fn (MasterAttendance $user) => [
                     'event_id' => $event->id,
                     'user_id' => $user->id,
                     'code' => Invitation::generateCode(),
