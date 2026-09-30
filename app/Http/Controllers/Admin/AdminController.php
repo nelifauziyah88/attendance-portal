@@ -152,6 +152,8 @@ class AdminController extends Controller
         }
 
         return view('admin.lucky_spin.lucky_spin', [
+            'checkedIn' => Attendance::count(),
+            'winners' => $luckySpin->winnerCount(),
             'displayUrl' => route('admin.lucky-spin.display'),
             'prizes' => $luckySpin->prizes(),
             'participants' => $luckySpin->participants(),

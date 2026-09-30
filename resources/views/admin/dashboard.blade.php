@@ -45,14 +45,14 @@
 @php
     $event = ['name' => 'Annual Gala Dinner'];
 
-    $invited = 900;
-    $confirmed = 720;
-    $checkedIn = 540;
+    $invited = $invited ?? 900;
+    $confirmed = $confirmed ?? 720;
+    $checkedIn = $checkedIn ?? 540;
 
     $declined = $invited - $confirmed;
     $pending = $confirmed - $checkedIn;
-    $confirmedRate = round(($confirmed / $invited) * 100);
-    $checkedRate = round(($checkedIn / $confirmed) * 100);
+    $confirmedRate = $invited > 0 ? round(($confirmed / $invited) * 100) : 0;
+    $checkedRate = $confirmed > 0 ? round(($checkedIn / $confirmed) * 100) : 0;
 
     $stats = [
         ['label' => 'INVITED EMPLOYEES', 'value' => $invited, 'note' => 'Total invitations sent'],

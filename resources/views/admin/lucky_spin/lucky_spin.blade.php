@@ -21,8 +21,8 @@
     </style>
 </head>
 @php
-    $checkedIn = 540;
-    $winners = 12;
+    $checkedIn = $checkedIn ?? 540;
+    $winners = $winners ?? 12;
     $eligible = $checkedIn - $winners;
 
     $displayUrl = $displayUrl ?? '/admin/lucky-spin/display';
@@ -314,10 +314,17 @@
             speed: SPEEDS[saved.speed] ? saved.speed : 'normal',
             history: (saved.history ?? JSON.parse(root.dataset.history)).slice(0, 1),
             forfeited: saved.forfeited ?? [],
+            won: saved.won ?? [],
             last: saved.last ?? null,
             spinning: false,
             current: null,
         };
+
+        const eligiblePool = () => participants
+            .map((_, position) => position)
+            .filter((position) => !state.forfeited.includes(participants[position].badge))
+            .filter((position) => !state.won.includes(participants[position].badge))
+            .filter((position) => !/manager/i.test(participants[position].position ?? ''));
 
         const save = () => {
             try {
@@ -329,6 +336,7 @@
                     speed: state.speed,
                     history: state.history,
                     forfeited: state.forfeited,
+                    won: state.won,
                     last: state.last
                 }));
             } catch {
@@ -407,10 +415,9 @@
 
         const spin = () => {
             if (state.spinning || !count) return;
+            if (state.winners >= prizes.length) return;
 
-            const pool = participants
-                .map((_, position) => position)
-                .filter((position) => !state.forfeited.includes(participants[position].badge));
+            const pool = eligiblePool();
 
             if (!pool.length) return;
 
@@ -436,8 +443,7 @@
             const {
                 winner,
                 draw,
-                prize,
-                eligible
+                prize
             } = state.current;
 
             const entry = {
@@ -451,7 +457,8 @@
             state.history = [entry];
             state.last = entry;
             state.winners = draw;
-            state.eligible = eligible - 1;
+            state.won = [...state.won, winner.badge];
+            state.eligible = eligiblePool().length;
             state.slot = count + (state.slot % count);
             state.current = null;
 
@@ -495,6 +502,8 @@
                 type: 'forfeit'
             });
         };
+
+        state.eligible = eligiblePool().length;
 
         applySpeed(state.speed);
         setStat('winners', state.winners);

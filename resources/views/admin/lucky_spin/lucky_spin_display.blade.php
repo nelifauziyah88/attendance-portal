@@ -309,10 +309,19 @@
             speed: SPEEDS[saved.speed] ? saved.speed : 'normal',
             history: (saved.history ?? []).slice(0, 1),
             forfeited: saved.forfeited ?? [],
+            won: saved.won ?? [],
             last: saved.last ?? null,
             spinning: false,
             current: null,
         };
+
+        const eligiblePool = () => participants
+            .map((_, position) => position)
+            .filter((position) => !state.forfeited.includes(participants[position].badge))
+            .filter((position) => !state.won.includes(participants[position].badge))
+            .filter((position) => !/manager/i.test(participants[position].position ?? ''));
+
+        state.eligible = eligiblePool().length;
 
         const save = () => {
             try {
@@ -323,6 +332,7 @@
                     slot: state.slot,
                     history: state.history,
                     forfeited: state.forfeited,
+                    won: state.won,
                     last: state.last
                 }));
             } catch {
@@ -379,10 +389,9 @@
 
         const spin = () => {
             if (state.spinning || !count) return;
+            if (state.winners >= prizes.length) return;
 
-            const pool = participants
-                .map((_, position) => position)
-                .filter((position) => !state.forfeited.includes(participants[position].badge));
+            const pool = eligiblePool();
 
             if (!pool.length) return;
 
@@ -408,8 +417,7 @@
             const {
                 winner,
                 draw,
-                prize,
-                eligible
+                prize
             } = state.current;
 
             const entry = {
@@ -425,7 +433,8 @@
             state.history = [entry];
             state.last = entry;
             state.winners = draw;
-            state.eligible = eligible - 1;
+            state.won = [...state.won, winner.badge];
+            state.eligible = eligiblePool().length;
             state.slot = count + (state.slot % count);
             state.current = null;
 
