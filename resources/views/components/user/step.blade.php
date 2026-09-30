@@ -1,7 +1,7 @@
 @props(['number', 'title', 'subtitle'])
 
 <div class="flex items-center gap-3">
-    <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-xs font-semibold text-[#3563ff] sm:size-11">{{ $number }}</span>
+    <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-fuchsia-600 to-violet-700 text-xs font-semibold text-white shadow-md shadow-fuchsia-500/30 ring-1 ring-cyan-300/40 sm:size-11">{{ $number }}</span>
 
     <div class="min-w-0">
         <h3 class="text-base font-semibold leading-tight sm:text-lg">{{ $title }}</h3>

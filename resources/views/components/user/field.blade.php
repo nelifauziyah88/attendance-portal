@@ -10,7 +10,7 @@
         value="{{ old($name, $value) }}"
         placeholder="{{ $placeholder }}"
         @readonly($readonly)
-        class="h-[52px] w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50/60 px-4 text-base outline-none transition duration-300 placeholder:text-slate-400 focus:-translate-y-0.5 focus:border-[#3563ff] focus:bg-white focus:ring-4 focus:ring-blue-100 read-only:cursor-default sm:text-sm"
+        class="h-[52px] w-full min-w-0 rounded-xl border border-violet-200 bg-violet-50/50 px-4 text-base outline-none transition duration-300 placeholder:text-violet-300 focus:-translate-y-0.5 focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100 read-only:cursor-default sm:text-sm"
     >
 
     @error($name)
