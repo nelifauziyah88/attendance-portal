@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Attendance List</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         @keyframes rise { from { opacity: 0; transform: translateY(18px) } to { opacity: 1; transform: translateY(0) } }
@@ -37,18 +34,20 @@
             <x-admin.sidebar active="attendance-list" />
 
             <main class="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
-                <div class="[animation:rise_.7s_ease-out_both]">
+                <div class="min-w-0 [animation:rise_.7s_ease-out_both]">
                     <p class="text-xs font-medium text-[#3563ff]">{{ $event['name'] }}</p>
-                    <h1 class="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Attendance List</h1>
+                    <h1 class="mt-2 break-words text-2xl font-semibold tracking-tight min-[400px]:text-3xl sm:text-4xl">Attendance List</h1>
                 </div>
 
-                <section class="mt-8 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-lg shadow-blue-100/50 sm:p-6 [animation:rise_.7s_.1s_ease-out_both]">
-                    <div class="overflow-x-auto">
-                        <table class="w-full min-w-[820px] border-separate border-spacing-0 text-left text-sm">
+                <section class="mt-6 min-w-0 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-lg shadow-blue-100/50 sm:mt-8 sm:p-6 [animation:rise_.7s_.1s_ease-out_both]">
+                    <x-admin.table_search target="attendance-table" placeholder="Search attendance..." class="mb-4 sm:ml-auto" />
+
+                    <div class="-mx-1 overflow-x-auto overscroll-x-contain px-1">
+                        <table id="attendance-table" class="w-full min-w-[820px] border-separate border-spacing-0 text-left text-sm">
                             <thead>
                                 <tr class="bg-blue-50/60 text-[11px] font-semibold tracking-widest text-slate-500">
                                     @foreach ($columns as $column)
-                                        <th @class(['px-5 py-5 font-semibold', 'rounded-l-xl' => $loop->first, 'rounded-r-xl' => $loop->last])>{{ $column }}</th>
+                                        <th @class(['whitespace-nowrap px-3 py-4 font-semibold sm:px-5 sm:py-5', 'rounded-l-xl' => $loop->first, 'rounded-r-xl' => $loop->last])>{{ $column }}</th>
                                     @endforeach
                                 </tr>
                             </thead>
@@ -56,12 +55,12 @@
                             <tbody>
                                 @foreach ($employees as $employee)
                                     <tr class="transition duration-300 even:bg-slate-50/60 hover:bg-blue-50/60 [animation:rise_.6s_ease-out_both]" style="animation-delay: {{ 0.2 + $loop->index * 0.06 }}s">
-                                        <td class="border-b border-slate-100 px-5 py-8 text-slate-500">{{ sprintf('%02d', $loop->iteration) }}</td>
-                                        <td class="border-b border-slate-100 px-5 py-8 text-slate-500">{{ $employee['badge'] }}</td>
-                                        <td class="border-b border-slate-100 px-5 py-8 font-semibold text-[#26346b]">{{ $employee['name'] }}</td>
-                                        <td class="border-b border-slate-100 px-5 py-8 text-slate-500">{{ $employee['position'] }}</td>
-                                        <td class="border-b border-slate-100 px-5 py-8 text-slate-500">{{ $employee['department'] }}</td>
-                                        <td class="border-b border-slate-100 px-5 py-8 text-slate-500">{{ $employee['checkin'] }}</td>
+                                        <td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ sprintf('%02d', $loop->iteration) }}</td>
+                                        <td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $employee['badge'] }}</td>
+                                        <td class="border-b border-slate-100 px-3 py-4 font-semibold text-[#26346b] sm:px-5 sm:py-8">{{ $employee['name'] }}</td>
+                                        <td class="border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $employee['position'] }}</td>
+                                        <td class="border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $employee['department'] }}</td>
+                                        <td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">{{ $employee['checkin'] }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>

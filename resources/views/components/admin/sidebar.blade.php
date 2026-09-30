@@ -12,9 +12,9 @@
 
 <label for="sidebar-toggle" class="pointer-events-none fixed inset-0 top-16 z-20 bg-slate-900/30 opacity-0 transition duration-300 group-has-[#sidebar-toggle:checked]/shell:pointer-events-auto group-has-[#sidebar-toggle:checked]/shell:opacity-100 lg:hidden"></label>
 
-<aside class="fixed bottom-0 left-0 top-16 z-30 w-64 -translate-x-full overflow-hidden border-r border-slate-200/80 bg-white transition-[width,transform] duration-300 group-has-[#sidebar-toggle:checked]/shell:translate-x-0 lg:sticky lg:bottom-auto lg:h-[calc(100vh-4rem)] lg:shrink-0 lg:translate-x-0 lg:group-has-[#sidebar-toggle:checked]/shell:w-0 lg:group-has-[#sidebar-toggle:checked]/shell:border-r-0">
+<aside class="fixed bottom-0 left-0 top-16 z-30 w-64 max-w-[85vw] -translate-x-full overflow-hidden border-r border-slate-200/80 bg-white shadow-2xl shadow-slate-900/10 transition-[width,transform] duration-300 group-has-[#sidebar-toggle:checked]/shell:translate-x-0 lg:sticky lg:bottom-auto lg:h-[calc(100vh-4rem)] lg:max-w-none lg:shrink-0 lg:translate-x-0 lg:shadow-none lg:group-has-[#sidebar-toggle:checked]/shell:w-0 lg:group-has-[#sidebar-toggle:checked]/shell:border-r-0">
     <div class="flex h-full w-64 flex-col">
-        <nav class="flex-1 overflow-y-auto p-4">
+        <nav class="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-4">
             <p class="px-3 text-[11px] font-semibold tracking-widest text-slate-400">WORKSPACE</p>
 
             <ul class="mt-4 space-y-1.5">

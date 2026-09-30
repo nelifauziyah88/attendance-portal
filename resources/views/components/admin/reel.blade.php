@@ -5,32 +5,41 @@
 
     $sizes = [
         'md' => [
-            'root' => '[--h:3rem] sm:[--h:3.5rem]',
-            'text' => 'text-base sm:text-xl',
+            'root' => '[--h:4.5rem] sm:[--h:5.5rem]',
+            'name' => 'text-base min-[400px]:text-lg sm:text-2xl',
+            'badge' => 'text-[10px] sm:text-xs',
         ],
         'lg' => [
-            'root' => '[--h:2.75rem] sm:[--h:3.5rem] xl:[--h:4.5rem]',
-            'text' => 'text-xl uppercase sm:text-3xl xl:text-5xl',
+            'root' => '[--h:5rem] sm:[--h:6.5rem] lg:[--h:7.5rem] xl:[--h:9rem]',
+            'name' => 'text-xl uppercase min-[400px]:text-2xl sm:text-4xl lg:text-5xl xl:text-6xl',
+            'badge' => 'text-xs sm:text-sm lg:text-base xl:text-lg',
         ],
     ];
 
     $config = $sizes[$size] ?? $sizes['md'];
     $list = collect($participants)->values();
-    $items = collect(range(1, $repeats))->flatMap(fn () => $list)->values();
+    $items = collect(range(1, $repeats))->flatMap(fn() => $list)->values();
 @endphp
 
-<div {{ $attributes->class(['relative w-full', $config['root']]) }} data-reel data-participants="{{ json_encode($list) }}">
-    <div class="pointer-events-none absolute inset-x-0 top-1/2 z-10 h-[var(--h)] -translate-y-1/2 rounded-2xl border border-white/70 bg-white/15 shadow-[0_0_40px_rgba(120,160,255,.55)]"></div>
-
-    <div class="h-[calc(var(--h)*5)] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_30%,black_70%,transparent)]">
-        <ul data-strip class="transition-transform duration-[6500ms] ease-[cubic-bezier(.12,.7,.12,1)] will-change-transform" style="--slot: 2; transform: translateY(calc((var(--slot) - 2) * var(--h) * -1))">
-            @foreach ($items as $item)
-                <li class="flex h-[var(--h)] items-center justify-center gap-4 whitespace-nowrap font-semibold tracking-tight text-white {{ $config['text'] }}">
-                    <span>{{ $item['badge'] }}</span>
-                    <span class="opacity-60">&bull;</span>
-                    <span>{{ $item['name'] }}</span>
-                </li>
-            @endforeach
-        </ul>
+<div {{ $attributes->class(['relative w-full min-w-0', $config['root']]) }} data-reel
+    data-participants="{{ json_encode($list) }}">
+    <div
+        class="relative h-[var(--h)] overflow-hidden rounded-xl border border-white/70 bg-white/15 shadow-[0_0_24px_rgba(120,160,255,.55)] sm:rounded-2xl sm:shadow-[0_0_40px_rgba(120,160,255,.55)]">
+        <div
+            class="h-full overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_12%,black_88%,transparent)]">
+            <ul data-strip
+                class="transition-transform duration-[6500ms] ease-[cubic-bezier(.12,.7,.12,1)] will-change-transform"
+                style="--slot: 0; transform: translateY(calc(var(--slot) * var(--h) * -1))">
+                @foreach ($items as $item)
+                    <li
+                        class="flex h-[var(--h)] min-w-0 flex-col items-center justify-center gap-0.5 overflow-hidden px-3 text-center text-white sm:gap-1 sm:px-4">
+                        <span
+                            class="w-full truncate whitespace-nowrap font-semibold leading-tight tracking-tight {{ $config['name'] }}">{{ $item['name'] }}</span>
+                        <span
+                            class="w-full truncate whitespace-nowrap font-medium leading-tight tracking-widest text-blue-100 {{ $config['badge'] }}">{{ $item['badge'] }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
     </div>
 </div>
