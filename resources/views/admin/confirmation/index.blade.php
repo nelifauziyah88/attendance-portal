@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Confirmation Attendance</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         @keyframes rise {
@@ -52,22 +53,18 @@
 
                 <section
                     class="mt-6 min-w-0 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-lg shadow-blue-100/50 sm:mt-8 sm:p-6 [animation:rise_.7s_.1s_ease-out_both]">
-                    <form id="confirmation-search-form" method="GET" action="{{ url()->current() }}" class="mb-4 w-full sm:ml-auto sm:max-w-sm">
-                        <input
-                            id="confirmation-search-input"
-                            type="search"
-                            name="search"
-                            value="{{ $search }}"
-                            placeholder="Search badge ID or employee..."
-                            aria-label="Search badge ID or employee"
+                    <form id="confirmation-search-form" method="GET" action="{{ url()->current() }}"
+                        class="mb-4 w-full sm:ml-auto sm:max-w-sm">
+                        <input id="confirmation-search-input" type="search" name="search" value="{{ $search }}"
+                            placeholder="Search badge ID or employee..." aria-label="Search badge ID or employee"
                             autocomplete="off"
-                            class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 text-sm outline-none transition focus:border-[#3563ff] focus:bg-white focus:ring-4 focus:ring-blue-100"
-                        >
+                            class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 text-sm outline-none transition focus:border-[#3563ff] focus:bg-white focus:ring-4 focus:ring-blue-100">
                         <button type="submit" class="sr-only">Search</button>
                     </form>
 
                     <div class="-mx-1 overflow-x-auto overscroll-x-contain px-1">
-                        <table id="confirmation-table" class="w-full min-w-[820px] border-separate border-spacing-0 text-left text-sm">
+                        <table id="confirmation-table"
+                            class="w-full min-w-[820px] border-separate border-spacing-0 text-left text-sm">
                             <thead>
                                 <tr class="bg-blue-50/60 text-[11px] font-semibold tracking-widest text-slate-500">
                                     @foreach ($columns as $column)
@@ -106,7 +103,9 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="{{ count($columns) }}" class="px-5 py-12 text-center text-sm text-slate-500">No RSVP records found.</td>
+                                        <td colspan="{{ count($columns) }}"
+                                            class="px-5 py-12 text-center text-sm text-slate-500">No RSVP records found.
+                                        </td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -117,81 +116,83 @@
             </main>
         </div>
     </div>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('confirmation-search-form');
-    const input = document.getElementById('confirmation-search-input');
-    const pagination = document.getElementById('confirmation-pagination');
-    const table = document.getElementById('confirmation-table');
-    let debounceTimer;
-    let activeRequest;
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('confirmation-search-form');
+            const input = document.getElementById('confirmation-search-input');
+            const pagination = document.getElementById('confirmation-pagination');
+            const table = document.getElementById('confirmation-table');
+            let debounceTimer;
+            let activeRequest;
 
-    async function loadResults(url, historyMode = 'replace') {
-        activeRequest?.abort();
-        activeRequest = new AbortController();
-        table.setAttribute('aria-busy', 'true');
+            async function loadResults(url, historyMode = 'replace') {
+                activeRequest?.abort();
+                activeRequest = new AbortController();
+                table.setAttribute('aria-busy', 'true');
 
-        try {
-            const response = await fetch(url, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                signal: activeRequest.signal,
+                try {
+                    const response = await fetch(url, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        signal: activeRequest.signal,
+                    });
+
+                    if (!response.ok) throw new Error('Unable to load confirmation results.');
+
+                    const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+                    const nextBody = page.querySelector('#confirmation-table tbody');
+                    const nextPagination = page.getElementById('confirmation-pagination');
+
+                    if (!nextBody) throw new Error('Confirmation table was not returned.');
+
+                    table.tBodies[0].replaceWith(nextBody);
+                    pagination.innerHTML = nextPagination?.innerHTML ?? '';
+
+                    if (historyMode === 'push') history.pushState({}, '', url);
+                    else if (historyMode === 'replace') history.replaceState({}, '', url);
+                } catch (error) {
+                    if (error.name !== 'AbortError') console.error(error);
+                } finally {
+                    table.removeAttribute('aria-busy');
+                }
+            }
+
+            function search() {
+                const url = new URL(window.location.href);
+                const query = input.value.trim();
+                url.searchParams.delete('page');
+
+                if (query) url.searchParams.set('search', query);
+                else url.searchParams.delete('search');
+
+                loadResults(url.toString());
+            }
+
+            form.addEventListener('submit', event => {
+                event.preventDefault();
+                search();
             });
 
-            if (!response.ok) throw new Error('Unable to load confirmation results.');
+            input.addEventListener('input', () => {
+                window.clearTimeout(debounceTimer);
+                debounceTimer = window.setTimeout(search, 300);
+            });
 
-            const page = new DOMParser().parseFromString(await response.text(), 'text/html');
-            const nextBody = page.querySelector('#confirmation-table tbody');
-            const nextPagination = page.getElementById('confirmation-pagination');
+            pagination.addEventListener('click', event => {
+                const link = event.target.closest('a[href]');
+                if (!link) return;
 
-            if (!nextBody) throw new Error('Confirmation table was not returned.');
+                event.preventDefault();
+                loadResults(link.href, 'push');
+            });
 
-            table.tBodies[0].replaceWith(nextBody);
-            pagination.innerHTML = nextPagination?.innerHTML ?? '';
-
-            if (historyMode === 'push') history.pushState({}, '', url);
-            else if (historyMode === 'replace') history.replaceState({}, '', url);
-        } catch (error) {
-            if (error.name !== 'AbortError') console.error(error);
-        } finally {
-            table.removeAttribute('aria-busy');
-        }
-    }
-
-    function search() {
-        const url = new URL(window.location.href);
-        const query = input.value.trim();
-        url.searchParams.delete('page');
-
-        if (query) url.searchParams.set('search', query);
-        else url.searchParams.delete('search');
-
-        loadResults(url.toString());
-    }
-
-    form.addEventListener('submit', event => {
-        event.preventDefault();
-        search();
-    });
-
-    input.addEventListener('input', () => {
-        window.clearTimeout(debounceTimer);
-        debounceTimer = window.setTimeout(search, 300);
-    });
-
-    pagination.addEventListener('click', event => {
-        const link = event.target.closest('a[href]');
-        if (!link) return;
-
-        event.preventDefault();
-        loadResults(link.href, 'push');
-    });
-
-    window.addEventListener('popstate', () => {
-        input.value = new URLSearchParams(window.location.search).get('search') ?? '';
-        loadResults(window.location.href, 'none');
-    });
-});
-</script>
+            window.addEventListener('popstate', () => {
+                input.value = new URLSearchParams(window.location.search).get('search') ?? '';
+                loadResults(window.location.href, 'none');
+            });
+        });
+    </script>
 </body>
 
 </html>

@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Lucky Spin</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         @keyframes rise {
@@ -25,9 +26,16 @@
     $winners = 12;
     $eligible = $checkedIn - $winners;
 
-    $displayUrl = $displayUrl ?? '/admin/lucky-spin/display';
+    $displayUrl = $displayUrl ?? url('/admin/lucky-spin/display');
 
-    $prizes = $prizes ?? ['Smart TV', 'Air Fryer', 'Electric Scooter', 'Espresso Machine', 'Smartwatch', 'Shopping Voucher'];
+    $prizes = $prizes ?? [
+        'Smart TV',
+        'Air Fryer',
+        'Electric Scooter',
+        'Espresso Machine',
+        'Smartwatch',
+        'Shopping Voucher',
+    ];
 
     $participants =
         $participants ??
@@ -127,9 +135,15 @@
                     class="mt-6 min-w-0 overflow-hidden rounded-2xl bg-gradient-to-br from-[#26346b] via-[#2f57e0] to-[#26346b] px-4 py-6 shadow-lg shadow-blue-200/60 sm:px-10 sm:py-8 [animation:rise_.7s_.4s_ease-out_both]">
                     <div class="mb-3 text-center sm:mb-4">
                         <p data-result-note class="break-words text-xs font-medium tracking-widest text-blue-100"></p>
-                        <p data-result-name class="mt-1.5 break-words text-lg font-semibold leading-tight tracking-tight text-white empty:hidden sm:text-2xl"></p>
-                        <p data-result-badge class="mt-0.5 break-words text-xs font-medium tracking-widest text-blue-100 empty:hidden sm:text-sm"></p>
-                        <p data-result-prize class="mt-2 inline-block rounded-full bg-white/15 px-4 py-1 text-xs font-semibold tracking-widest text-white empty:hidden sm:text-sm"></p>
+                        <p data-result-name
+                            class="mt-1.5 break-words text-lg font-semibold leading-tight tracking-tight text-white empty:hidden sm:text-2xl">
+                        </p>
+                        <p data-result-badge
+                            class="mt-0.5 break-words text-xs font-medium tracking-widest text-blue-100 empty:hidden sm:text-sm">
+                        </p>
+                        <p data-result-prize
+                            class="mt-2 inline-block rounded-full bg-white/15 px-4 py-1 text-xs font-semibold tracking-widest text-white empty:hidden sm:text-sm">
+                        </p>
                     </div>
 
                     <x-admin.reel :participants="$participants" size="md" class="mx-auto max-w-3xl" />

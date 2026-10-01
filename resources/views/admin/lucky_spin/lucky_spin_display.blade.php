@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Lucky Spin Display</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         @keyframes rise {
@@ -38,7 +39,14 @@
     $draw = $draw ?? 13;
     $eligible = $eligible ?? 528;
 
-    $prizes = $prizes ?? ['Smart TV', 'Air Fryer', 'Electric Scooter', 'Espresso Machine', 'Smartwatch', 'Shopping Voucher'];
+    $prizes = $prizes ?? [
+        'Smart TV',
+        'Air Fryer',
+        'Electric Scooter',
+        'Espresso Machine',
+        'Smartwatch',
+        'Shopping Voucher',
+    ];
 
     $participants =
         $participants ??
