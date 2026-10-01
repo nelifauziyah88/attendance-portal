@@ -174,7 +174,7 @@
                     success: 'Berhasil',
                     info: 'Informasi RSVP',
                     warning: 'Periksa kembali',
-                    error: 'Tidak dapat melanjutkan',
+                    error: 'Mohon maaf anda tidak masuk dalam daftar undangan',
                 };
 
                 return Swal.fire({
