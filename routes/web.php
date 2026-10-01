@@ -38,18 +38,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 });
 
-
-// Route::view('/admin/login', 'admin.auth.login')
-//     ->name('admin.auth.login');
-
-// Route::view('/admin/dashboard', 'admin.dashboard')
-//     ->name('admin.dashboard');
-
 Route::view('/admin/lucky-spin', 'admin.lucky_spin.lucky_spin')
     ->name('admin.lucky-spin');
 
 Route::view('/admin/lucky-spin/display', 'admin.lucky_spin.lucky_spin_display')
     ->name('admin.lucky-spin.display');
-
-// Route::view('/check-in', 'users.attendance.index')
-//     ->name('attendance.index');
