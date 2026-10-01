@@ -1,11 +1,11 @@
 @extends('layouts.user')
 
-@section('title', 'Annual Gala Dinner Invitation')
+@section('title', 'D&D 2026 Invitation')
 
 @php
     $event = [
         'poster' => 'images/poster.jpeg',
-        'title' => 'Annual Gala Dinner',
+        'title' => 'D&D 2026',
     ];
 @endphp
 

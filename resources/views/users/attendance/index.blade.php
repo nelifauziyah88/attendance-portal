@@ -1,13 +1,13 @@
 @extends('layouts.user')
 
-@section('title', 'On-site Check-in')
+@section('title', 'D&D 2026 Check-in')
 
 @section('badge', 'EMPLOYEE CHECK-IN')
 
 @php
     $poster = [
         'src' => 'images/poster.jpeg',
-        'alt' => 'Annual Gala Dinner',
+        'alt' => 'D&D 2026',
     ];
 
     $details = [

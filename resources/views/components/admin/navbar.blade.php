@@ -9,8 +9,7 @@
         <label for="sidebar-toggle" aria-label="Toggle sidebar" class="grid size-10 shrink-0 cursor-pointer place-items-center rounded-xl text-slate-500 transition duration-300 hover:bg-blue-50 hover:text-[#3563ff] active:scale-90">
             <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </label>
-        <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-[#3563ff] text-lg font-semibold text-white shadow-lg shadow-blue-400/30 transition duration-300 hover:rotate-6 hover:scale-110">E</span>
-        <span class="hidden truncate text-sm font-semibold tracking-wide min-[400px]:block">EVENT PORTAL</span>
+        <span class="hidden truncate text-sm font-semibold tracking-wide min-[400px]:block">D&D 2026</span>
     </div>
 
     <div class="flex min-w-0 items-center gap-2 sm:gap-4 md:gap-6">
