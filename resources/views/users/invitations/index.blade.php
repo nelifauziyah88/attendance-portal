@@ -82,8 +82,10 @@
                         subtitle="Let us know if you can join the celebration." />
 
                     <div class="grid gap-3 sm:grid-cols-2 sm:gap-4">
-                        <x-user.choice name="attendance" value="yes" label="Yes, I will attend" sublabel="Ya, saya akan hadir" checked disabled />
-                        <x-user.choice name="attendance" value="no" label="Sorry, I cannot attend" sublabel="Maaf, saya tidak bisa hadir" disabled />
+                        <x-user.choice name="attendance" value="yes" label="Yes, I will attend"
+                            sublabel="Ya, saya akan hadir" checked disabled />
+                        <x-user.choice name="attendance" value="no" label="Sorry, I cannot attend"
+                            sublabel="Maaf, saya tidak bisa hadir" disabled />
                     </div>
                 </div>
             </div>
@@ -142,7 +144,7 @@
                     closePoster();
                 }
             });
-            
+
             const btnFind = document.getElementById('btnFind');
             const btnFindText = document.getElementById('btnFindText');
             const btnFindSpinner = document.getElementById('btnFindSpinner');
@@ -174,7 +176,7 @@
                     success: 'Berhasil',
                     info: 'Informasi RSVP',
                     warning: 'Periksa kembali',
-                    error: 'Mohon maaf anda tidak masuk dalam daftar undangan',
+                    error: 'Mohon maaf anda tidak dapat masuk dalam daftar undangan',
                 };
 
                 return Swal.fire({
@@ -215,7 +217,7 @@
                 btnFindText.classList.add('hidden');
                 btnFindSpinner.classList.remove('hidden');
 
-                fetch(`/api/employee/${encodeURIComponent(badgeId)}`, {
+                fetch(`{{ url('/api/employee') }}/${encodeURIComponent(badgeId)}`, {
                         method: 'GET',
                         headers: {
                             'Accept': 'application/json',

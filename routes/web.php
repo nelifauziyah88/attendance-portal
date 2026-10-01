@@ -43,3 +43,5 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/display', [LuckySpinController::class, 'display'])->name('display');
     });
 });
+    Route::view('/admin/prizes', 'admin.prizes.index')
+    ->name('admin.prizes.index');

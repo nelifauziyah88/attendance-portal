@@ -58,19 +58,19 @@
     <section class="relative z-10 flex flex-1 flex-col items-center px-3 pb-8 pt-8 sm:px-6 sm:pt-10">
         <article
             class="w-full max-w-xl rounded-3xl border border-violet-300/60 bg-white p-5 shadow-xl shadow-fuchsia-200/50 sm:p-10 [animation:rise_.8s_.2s_ease-out_both]">
-                <dl class="w-full min-w-0">
-                    @foreach ($details as $detail)
-                        <div @class([
-                            'grid w-full grid-cols-[7rem_1fr] font-bold items-center gap-3 py-3 text-sm sm:grid-cols-[10rem_1fr] sm:py-4 sm:text-base',
-                            'border-b border-violet-200' => !$loop->last,
-                            'pt-0' => $loop->first,
-                            'pb-0' => $loop->last,
-                        ])>
-                            <dt class="text-slate-500">{{ $detail['label'] }}</dt>
-                            <dd id="{{ $detail['id'] }}" class="min-w-0 break-words font-medium">-</dd>
-                        </div>
-                    @endforeach
-                </dl>
+            <dl class="w-full min-w-0">
+                @foreach ($details as $detail)
+                    <div @class([
+                        'grid w-full grid-cols-[7rem_1fr] font-bold items-center gap-3 py-3 text-sm sm:grid-cols-[10rem_1fr] sm:py-4 sm:text-base',
+                        'border-b border-violet-200' => !$loop->last,
+                        'pt-0' => $loop->first,
+                        'pb-0' => $loop->last,
+                    ])>
+                        <dt class="text-slate-500">{{ $detail['label'] }}</dt>
+                        <dd id="{{ $detail['id'] }}" class="min-w-0 break-words font-medium">-</dd>
+                    </div>
+                @endforeach
+            </dl>
             </div>
         </article>
 
@@ -246,7 +246,7 @@
                 btnFindText.classList.add('hidden');
                 btnFindSpinner.classList.remove('hidden');
 
-                fetch(`/api/check-in/employee/${encodeURIComponent(badgeId)}`, {
+                fetch(`{{ url('/api/check-in/employee') }}/${encodeURIComponent(badgeId)}`, {
                         headers: {
                             'Accept': 'application/json',
                             'X-Requested-With': 'XMLHttpRequest'

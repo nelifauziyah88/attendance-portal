@@ -20,18 +20,6 @@
             }
         }
 
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0) rotate(0deg)
-            }
-
-            50% {
-                transform: translateY(-10px) rotate(6deg)
-            }
-        }
-
         @keyframes grow {
             from {
                 transform: scaleX(0)
@@ -70,12 +58,10 @@
             'footer' => [number_format($checkedIn) . ' checked in', number_format($pending) . ' pending'],
         ],
     ];
-
-    $circles = ['left-6 top-0', 'left-0 top-8', 'left-12 top-8', 'left-6 top-16'];
 @endphp
 
 <body
-    class="bg-[#f5f8ff] font-normal text-[#26346b] antialiased [font-family:'Plus_Jakarta_Sans',ui-sans-serif,system-ui,sans-serif]">
+    class="bg-[#f8f4ff] font-normal text-[#2e1065] antialiased [font-family:'Plus_Jakarta_Sans',ui-sans-serif,system-ui,sans-serif]">
     <div class="group/shell flex min-h-screen flex-col">
         <input type="checkbox" id="sidebar-toggle" class="sr-only">
 
@@ -95,29 +81,19 @@
                 </div>
 
                 <section
-                    class="relative mt-6 overflow-hidden rounded-2xl bg-gradient-to-r from-[#4468e8] via-[#3d68fa] to-[#6a94ff] px-5 py-6 text-white shadow-xl shadow-blue-200/60 sm:px-8 sm:py-7 sm:pr-40 [animation:rise_.7s_.1s_ease-out_both]">
-                    <div class="pointer-events-none absolute right-8 top-1/2 hidden size-28 -translate-y-1/2 sm:block">
-                        <div class="relative size-full [animation:float_9s_ease-in-out_infinite]">
-                            @foreach ($circles as $circle)
-                                <span
-                                    class="absolute h-16 w-14 rounded-full border border-white/50 {{ $circle }}"></span>
-                            @endforeach
-                            <span
-                                class="absolute left-[3.25rem] top-[3.25rem] size-4 rounded-full border border-white/60"></span>
-                        </div>
-                    </div>
-
-                    <p class="text-[11px] font-medium tracking-widest text-blue-100">LIVE EVENT SUMMARY</p>
+                    class="relative mt-6 overflow-hidden rounded-2xl bg-gradient-to-r from-[#a3248f] via-[#5b1b7a] to-[#2e1065] px-5 py-6 text-white shadow-xl shadow-fuchsia-200/60 sm:px-8 sm:py-7 [animation:rise_.7s_.1s_ease-out_both]">
+                    <p class="text-[11px] font-medium tracking-widest text-cyan-200">LIVE EVENT SUMMARY</p>
                     <h2 class="mt-2 break-words text-xl font-semibold tracking-tight sm:text-2xl">A clear view of every
                         guest.</h2>
-                    <p class="mt-2 text-sm font-light text-blue-50">Track RSVP responses and check-ins as they happen.
+                    <p class="mt-2 text-sm font-light text-violet-100">Track RSVP responses and check-ins as they
+                        happen.
                     </p>
                 </section>
 
                 <section class="mt-6 grid gap-4 md:grid-cols-3">
                     @foreach ($stats as $stat)
                         <article
-                            class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-lg shadow-blue-100/50 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-200/60 sm:p-6 [animation:rise_.7s_ease-out_both]"
+                            class="rounded-2xl border border-violet-200/70 bg-white p-5 shadow-lg shadow-violet-100/50 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-fuchsia-200/60 sm:p-6 [animation:rise_.7s_ease-out_both]"
                             style="animation-delay: {{ 0.2 + $loop->index * 0.1 }}s">
                             <p class="text-[10px] font-semibold tracking-widest text-slate-500">{{ $stat['label'] }}</p>
                             <p class="mt-2 text-4xl font-semibold tracking-tight sm:text-5xl">
@@ -135,7 +111,7 @@
                 <section class="mt-5 grid gap-4 sm:gap-6 lg:grid-cols-2">
                     @foreach ($panels as $panel)
                         <article
-                            class="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-lg shadow-blue-100/50 sm:p-6 [animation:rise_.7s_.5s_ease-out_both]">
+                            class="min-w-0 rounded-2xl border border-violet-200/70 bg-white p-5 shadow-lg shadow-violet-100/50 sm:p-6 [animation:rise_.7s_.5s_ease-out_both]">
                             <h3 class="break-words text-base font-semibold tracking-tight sm:text-lg">
                                 {{ $panel['title'] }}</h3>
                             <p class="mt-1 text-xs text-slate-500">{{ $panel['subtitle'] }}</p>
@@ -145,13 +121,13 @@
                                     <div>
                                         <div class="flex items-center justify-between gap-3 text-sm font-medium">
                                             <span class="min-w-0 truncate">{{ $bar['label'] }}</span>
-                                            <span @class(['shrink-0', 'text-[#3563ff]' => $bar['primary']])>{{ $bar['percent'] }}%</span>
+                                            <span @class(['shrink-0', 'text-fuchsia-600' => $bar['primary']])>{{ $bar['percent'] }}%</span>
                                         </div>
-                                        <div class="mt-2 h-3 overflow-hidden rounded-full bg-blue-50">
+                                        <div class="mt-2 h-3 overflow-hidden rounded-full bg-violet-50">
                                             <div @class([
                                                 'h-full origin-left rounded-full [animation:grow_1.2s_.6s_ease-out_both]',
-                                                'bg-[#3563ff]' => $bar['primary'],
-                                                'bg-[#26346b]' => !$bar['primary'],
+                                                'bg-gradient-to-r from-fuchsia-600 to-violet-700' => $bar['primary'],
+                                                'bg-[#2e1065]' => !$bar['primary'],
                                             ]) style="width: {{ $bar['percent'] }}%">
                                             </div>
                                         </div>
