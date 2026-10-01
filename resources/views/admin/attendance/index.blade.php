@@ -45,9 +45,9 @@
 
                 <section
                     class="mt-6 min-w-0 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-lg shadow-blue-100/50 sm:mt-8 sm:p-6 [animation:rise_.7s_.1s_ease-out_both]">
-                    <form id="confirmation-search-form" method="GET" action="{{ url()->current() }}"
+                    <form id="attendance-search-form" method="GET" action="{{ url()->current() }}"
                         class="mb-4 w-full sm:ml-auto sm:max-w-sm">
-                        <input id="confirmation-search-input" type="search" name="search" value="{{ $search }}"
+                        <input id="attendance-search-input" type="search" name="search" value="{{ $search }}"
                             placeholder="Search badge ID or employee..." aria-label="Search badge ID or employee"
                             autocomplete="off"
                             class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100">
