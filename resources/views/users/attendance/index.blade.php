@@ -5,9 +5,9 @@
 @section('badge', 'EMPLOYEE CHECK-IN')
 
 @php
-    $poster = [
-        'src' => 'images/poster.jpeg',
-        'alt' => 'D&D 2026',
+    $event = [
+        'poster' => 'images/poster.jpeg',
+        'title' => 'D&D 2026',
     ];
 
     $details = [
@@ -18,16 +18,6 @@
     ];
 
     $calendar = '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>';
-
-    $info = [
-        ['icon' => $calendar, 'text' => 'Annual Gala Dinner'],
-        ['icon' => $calendar, 'text' => '15 November 2026'],
-        ['icon' => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', 'text' => '7:00 PM'],
-        [
-            'icon' => '<path d="M12 21s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>',
-            'text' => 'Grand Ballroom',
-        ],
-    ];
 
     $steps = [
         ['number' => '01', 'label' => 'RSVP Complete', 'done' => true],
@@ -48,8 +38,33 @@
 
 @section('content')
     <section class="shrink-0 overflow-hidden bg-[#2e1065]">
-        <img src="{{ asset($poster['src']) }}" alt="{{ $poster['alt'] }}" class="block h-auto w-full" fetchpriority="high">
+        <button type="button" id="posterTrigger" aria-label="View poster in full screen"
+            class="group relative block w-full cursor-zoom-in focus:outline-none focus-visible:ring-4 focus-visible:ring-fuchsia-400/70">
+            <img src="{{ asset($event['poster']) }}" alt="{{ $event['title'] }}" class="block h-auto w-full"
+                fetchpriority="high">
+            <span
+                class="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm transition group-hover:bg-black/70 sm:bottom-4 sm:right-4">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                </svg>
+                Tap to enlarge
+            </span>
+        </button>
     </section>
+
+    <div id="posterLightbox" role="dialog" aria-modal="true" aria-label="{{ $event['title'] }} poster"
+        class="pointer-events-none invisible fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-3 opacity-0 backdrop-blur-sm transition-opacity duration-300 sm:p-6">
+        <button type="button" id="posterClose" aria-label="Close poster"
+            class="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-10 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition hover:bg-white/30 focus:outline-none focus-visible:ring-4 focus-visible:ring-fuchsia-400/70 sm:right-6 sm:top-6">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+        </button>
+        <img id="posterLightboxImg" src="{{ asset($event['poster']) }}" alt="{{ $event['title'] }}"
+            class="max-h-[calc(100dvh-1.5rem)] max-w-full scale-95 select-none rounded-lg object-contain shadow-2xl transition-transform duration-300 sm:max-h-[calc(100dvh-3rem)]">
+    </div>
 
     <section class="relative z-10 flex flex-1 flex-col items-center px-3 pb-8 pt-8 sm:px-6 sm:pt-10">
         <article
@@ -154,6 +169,53 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const posterTrigger = document.getElementById('posterTrigger');
+            const posterLightbox = document.getElementById('posterLightbox');
+            const posterLightboxImg = document.getElementById('posterLightboxImg');
+            const posterClose = document.getElementById('posterClose');
+
+            function openPoster() {
+                posterLightbox.classList.remove('invisible', 'pointer-events-none', 'opacity-0');
+                posterLightbox.classList.add('opacity-100');
+                posterLightboxImg.classList.remove('scale-95');
+                posterLightboxImg.classList.add('scale-100');
+                document.body.style.overflow = 'hidden';
+                posterClose.focus();
+            }
+
+            function closePoster() {
+                posterLightbox.classList.remove('opacity-100');
+                posterLightbox.classList.add('opacity-0', 'pointer-events-none');
+                posterLightboxImg.classList.remove('scale-100');
+                posterLightboxImg.classList.add('scale-95');
+                document.body.style.overflow = '';
+                setTimeout(function() {
+                    if (posterLightbox.classList.contains('opacity-0')) {
+                        posterLightbox.classList.add('invisible');
+                    }
+                }, 300);
+                posterTrigger.focus();
+            }
+
+            function isPosterOpen() {
+                return posterLightbox.classList.contains('opacity-100');
+            }
+
+            posterTrigger.addEventListener('click', openPoster);
+            posterClose.addEventListener('click', closePoster);
+
+            posterLightbox.addEventListener('click', function(event) {
+                if (event.target !== posterLightboxImg) {
+                    closePoster();
+                }
+            });
+
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape' && isPosterOpen()) {
+                    closePoster();
+                }
+            });
+
             const btnFind = document.getElementById('btnFind');
             const btnFindText = document.getElementById('btnFindText');
             const btnFindSpinner = document.getElementById('btnFindSpinner');
