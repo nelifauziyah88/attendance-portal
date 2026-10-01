@@ -8,8 +8,8 @@
         placeholder="{{ $placeholder }}"
         aria-label="{{ $placeholder }}"
         autocomplete="off"
-        class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/60 pl-11 pr-4 text-base outline-none transition duration-300 placeholder:text-slate-400 focus:border-[#3563ff] focus:bg-white focus:ring-4 focus:ring-blue-100 sm:text-sm"
-    >
+        class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 pl-11 pr-4 text-base outline-none transition duration-300 placeholder:text-slate-400 focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100 sm:text-sm"
+        >
 </div>
 
 @once

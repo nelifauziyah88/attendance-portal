@@ -52,7 +52,7 @@
                         <table id="attendance-table"
                             class="w-full min-w-[820px] border-separate border-spacing-0 text-left text-sm">
                             <thead>
-                                <tr class="bg-blue-50/60 text-[11px] font-semibold tracking-widest text-slate-500">
+                                <tr class="bg-violet-50/60 text-[11px] font-semibold tracking-widest text-slate-500">
                                     @foreach ($columns as $column)
                                         <th @class([
                                             'whitespace-nowrap px-3 py-4 font-semibold sm:px-5 sm:py-5',
@@ -65,7 +65,7 @@
 
                             <tbody>
                                 @forelse ($attendances as $attendance)
-                                    <tr class="transition duration-300 even:bg-slate-50/60 hover:bg-blue-50/60 animate-[rise_.6s_ease-out_both]"
+                                    <tr class="transition duration-300 even:bg-slate-50/60 hover:bg-violet-50/60 animate-[rise_.6s_ease-out_both]"
                                         style="animation-delay: {{ 0.2 + $loop->index * 0.06 }}s">
                                         <td
                                             class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">

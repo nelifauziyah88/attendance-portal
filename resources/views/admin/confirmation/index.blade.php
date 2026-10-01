@@ -58,7 +58,7 @@
                         <input id="confirmation-search-input" type="search" name="search" value="{{ $search }}"
                             placeholder="Search badge ID or employee..." aria-label="Search badge ID or employee"
                             autocomplete="off"
-                            class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 text-sm outline-none transition focus:border-[#3563ff] focus:bg-white focus:ring-4 focus:ring-blue-100">
+                            class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100">
                         <button type="submit" class="sr-only">Search</button>
                     </form>
 
@@ -66,7 +66,7 @@
                         <table id="confirmation-table"
                             class="w-full min-w-[820px] border-separate border-spacing-0 text-left text-sm">
                             <thead>
-                                <tr class="bg-blue-50/60 text-[11px] font-semibold tracking-widest text-slate-500">
+                                <tr class="bg-violet-50/60 text-[11px] font-semibold tracking-widest text-slate-500">
                                     @foreach ($columns as $column)
                                         <th @class([
                                             'whitespace-nowrap px-3 py-4 font-semibold sm:px-5 sm:py-5',
@@ -80,7 +80,7 @@
                             <tbody>
                                 @forelse ($employees as $employee)
                                     @php($status = $statuses[$employee['status']])
-                                    <tr class="transition duration-300 even:bg-slate-50/60 hover:bg-blue-50/60 [animation:rise_.6s_ease-out_both]"
+                                    <tr class="transition duration-300 even:bg-slate-50/60 hover:bg-violet-50/60 [animation:rise_.6s_ease-out_both]"
                                         style="animation-delay: {{ 0.2 + $loop->index * 0.06 }}s">
                                         <td
                                             class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">
