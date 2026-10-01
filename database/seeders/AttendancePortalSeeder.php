@@ -13,7 +13,6 @@ class AttendancePortalSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Buat Account Admin
         User::updateOrCreate(
             ['email' => 'admin@seatrium'],
             [
@@ -27,12 +26,32 @@ class AttendancePortalSeeder extends Seeder
             ->pluck('badge_id')
             ->each(fn (string $badgeId) => Invitation::updateOrCreate(['badge_id' => $badgeId]));
 
-        // 3. Seed Master Hadiah
-        Prize::insert([
-            ['name' => 'Smart TV 55 Inch', 'stock' => 2, 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Sepeda Listrik', 'stock' => 3, 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Smartphone Galaxy A55', 'stock' => 5, 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Voucher Belanja Rp 500rb', 'stock' => 10, 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        $prizes = [
+            ['name' => 'Monarch Polygon 5 Bicycle 27.5inch', 'stock' => 1],
+            ['name' => 'Fridge 2 doors (kulkas 2 pintu)', 'stock' => 2],
+            ['name' => "TV 40' inch", 'stock' => 1],
+            ['name' => 'Washing machine 7kg', 'stock' => 1],
+            ['name' => 'Air fryer samono 3.5L', 'stock' => 2],
+            ['name' => 'Oven samono 12L', 'stock' => 2],
+            ['name' => 'Baseus bass BS2 Lite', 'stock' => 3],
+            ['name' => 'Tab Xiaomi Redmi P2 11inch', 'stock' => 2],
+            ['name' => 'Blender', 'stock' => 3],
+            ['name' => 'Iron', 'stock' => 3],
+            ['name' => 'Gas Stove', 'stock' => 2],
+            ['name' => 'Compact umbrella (payung lipat)', 'stock' => 5],
+            ['name' => 'Tumbler 500ml', 'stock' => 6],
+            ['name' => 'Rice cooker 1.8L', 'stock' => 2],
+        ];
+
+        foreach ($prizes as $prize) {
+            Prize::updateOrCreate(
+                ['name' => $prize['name']],
+                [
+                    'stock' => $prize['stock'],
+                    'current_stock' => $prize['stock'],
+                    'image' => null,
+                ]
+            );
+        }
     }
 }

@@ -1,53 +1,122 @@
 <?php
+
 namespace App\Services;
 
-use App\Models\Attendance;
-use App\Models\LuckySpin;
-use App\Models\Prize;
 use App\Models\MasterAttendance;
+use App\Models\Prize;
+use App\Models\LuckySpin;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
 class LuckySpinService
 {
-    public function drawWinner()
+    /**
+     * Mengambil daftar seluruh peserta yang sudah Check-In.
+     */
+    public function getParticipants()
+    {
+        return MasterAttendance::whereHas('attendance', function ($q) {
+            $q->where('is_attending', true);
+        })
+        ->get(['badge_id', 'name', 'position', 'department', 'is_manager']);
+    }
+
+    /**
+     * Mengambil daftar ID Badge peserta yang sudah pernah menang Lucky Spin.
+     */
+    public function getExistingWinnerBadgeIds(): array
+    {
+        return LuckySpin::pluck('badge_id')->toArray();
+    }
+
+    /**
+     * Mengambil hadiah aktif (stok > 0) teratas.
+     */
+    public function getCurrentPrize(): ?Prize
+    {
+        return Prize::where('current_stock', '>', 0)
+            ->orderBy('id', 'asc')
+            ->first();
+    }
+
+    /**
+     * Mengambil daftar nama seluruh hadiah yang masih memiliki stok.
+     */
+    public function getActivePrizes(): array
+    {
+        return Prize::where('current_stock', '>', 0)->pluck('name')->toArray();
+    }
+
+    /**
+     * Proses Spin Pemenang (Acak dari kandidat non-manager yang eligible).
+     */
+    public function drawWinner(): array
     {
         return DB::transaction(function () {
-            // 1. Ambil badge_id yang sudah pernah menang
-            $existingWinners = LuckySpin::pluck('badge_id');
-
-            // 2. Cari peserta yang hadir (Check-in Hari H) & BELUM pernah menang
-            $eligibleParticipant = Attendance::whereNotIn('badge_id', $existingWinners)
-                ->inRandomOrder()
-                ->first();
-
-            if (!$eligibleParticipant) {
-                throw new Exception("Tidak ada peserta eligible yang tersisa untuk diundi.");
-            }
-
-            // 3. Cari stok hadiah yang masih ada
-            $prize = Prize::where('stock', '>', 0)->inRandomOrder()->first();
+            // 1. Ambil Hadiah Pertama yang Stoknya Masih Ada
+            $prize = $this->getCurrentPrize();
 
             if (!$prize) {
-                throw new Exception("Stok semua doorprize sudah habis.");
+                throw new Exception('Semua stok hadiah telah habis!');
             }
 
-            // 4. Catat pemenang & kurangi stok
-            LuckySpin::create([
-                'badge_id' => $eligibleParticipant->badge_id,
+            // 2. Filter Peserta Eligible: Sudah Check-In, Belum Menang, & BUKAN Manager
+            $existingWinners = $this->getExistingWinnerBadgeIds();
+
+            $eligibleCandidates = MasterAttendance::whereHas('attendance', function ($q) {
+                $q->where('is_attending', true);
+            })
+            ->whereNotIn('badge_id', $existingWinners)
+            ->where('is_manager', false)
+            ->get();
+
+            if ($eligibleCandidates->isEmpty()) {
+                throw new Exception('Tidak ada peserta eligible (non-manager) yang tersisa.');
+            }
+
+            // 3. Pilih Pemenang Secara Acak
+            $winner = $eligibleCandidates->random();
+
+            // 4. Potong Stok Hadiah
+            $prize->decrement('current_stock');
+
+            // 5. Simpan Record Pemenang
+            $luckySpin = LuckySpin::create([
+                'badge_id' => $winner->badge_id,
                 'prize_id' => $prize->id,
-                'won_at'   => now(),
+                'draw_number' => LuckySpin::count() + 1,
             ]);
 
-            $prize->decrement('stock');
-
-            // 5. Ambil identitas pemenang dari DB Master
-            $winnerUser = MasterAttendance::where('badge_id', $eligibleParticipant->badge_id)->first();
-
             return [
-                'winner' => $winnerUser,
-                'prize'  => $prize,
+                'id' => $luckySpin->id,
+                'draw' => $luckySpin->draw_number,
+                'badge' => $winner->badge_id,
+                'name' => $winner->name,
+                'position' => $winner->position,
+                'department' => $winner->department,
+                'prize' => $prize->name,
+                'prize_id' => $prize->id,
+                'remaining_stock' => $prize->fresh()->current_stock,
             ];
+        });
+    }
+
+    /**
+     * Proses Pembatalan / Forfeit Pemenang berdasarkan Badge ID.
+     */
+    public function forfeitWinnerByBadge(string $badgeId): void
+    {
+        DB::transaction(function () use ($badgeId) {
+            $spinRecord = LuckySpin::where('badge_id', $badgeId)->firstOrFail();
+            $prize = Prize::find($spinRecord->prize_id);
+
+            // Restore stok hadiah (+1)
+            if ($prize) {
+                $prize->increment('current_stock');
+            }
+
+            // Hapus record pemenang
+            $spinRecord->delete();
         });
     }
 }

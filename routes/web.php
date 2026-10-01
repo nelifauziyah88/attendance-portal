@@ -4,6 +4,7 @@ use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\LuckySpinController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -24,7 +25,8 @@ Route::post('/check-in', [CheckInController::class, 'store'])->name('checkin.sto
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AdminAuthController::class, 'login'])->name('login.store');
-    
+    Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
+
     // 1. Ringkasan Dashboard & Statistik Utama
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     // 2. Data Master Karyawan (pgsql_portal)
@@ -34,12 +36,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // 4. Rekap Check-In Hari-H (pgsql)
     Route::get('/attendance/list', [AdminController::class, 'attendance'])->name('attendance.index');
 
-    Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
-
+    Route::prefix('lucky-spin')->name('lucky-spin.')->group(function () {
+        Route::get('/', [LuckySpinController::class, 'index'])->name('index');
+        Route::post('/draw', [LuckySpinController::class, 'draw'])->name('draw');
+        Route::delete('/forfeit/{badge}', [LuckySpinController::class, 'forfeit'])->name('forfeit');
+        Route::get('/display', [LuckySpinController::class, 'display'])->name('display');
+    });
 });
-
-Route::view('/admin/lucky-spin', 'admin.lucky_spin.lucky_spin')
-    ->name('admin.lucky-spin');
-
-Route::view('/admin/lucky-spin/display', 'admin.lucky_spin.lucky_spin_display')
-    ->name('admin.lucky-spin.display');

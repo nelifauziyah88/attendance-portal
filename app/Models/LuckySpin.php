@@ -5,7 +5,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class LuckySpin extends Model
 {
-    protected $fillable = ['badge_id', 'prize_id', 'won_at'];
+    protected $fillable = ['badge_id', 'prize_id', 'winner', 'won_at'];
 
     public function user()
     {
