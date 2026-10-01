@@ -16,6 +16,9 @@ class AppServiceProvider extends ServiceProvider
             URL::forceRootUrl(config('app.url'));
             URL::forceScheme('https');
         }
+        if (config('app.env') === 'local') {
+            URL::forceRootUrl(config('app.url'));
+        }
 
         Paginator::currentPathResolver(function () {
             return url(request()->path());
