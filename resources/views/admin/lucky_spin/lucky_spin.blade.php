@@ -34,54 +34,18 @@
     </style>
 </head>
 @php
-    $checkedIn = 540;
-    $winners = 12;
-    $eligible = $checkedIn - $winners;
+    $checkedIn = $checkedIn ?? 0;
+    $winners = $winners ?? 0;
+    $winnerSlots = $winnerSlots ?? 0;
+    $eligible = $eligible ?? 0;
 
     $displayUrl = $displayUrl ?? url('/admin/lucky-spin/display');
-
-    $participants =
-        $participants ??
-        collect([
-            ['Kevin Wijaya', 'Software Engineer', 'Information Technology'],
-            ['Sarah Amelia', 'Marketing Manager', 'Marketing'],
-            ['Bima Kurniawan', 'Project Engineer', 'Engineering'],
-            ['Putri Maharani', 'HR Specialist', 'Human Resources'],
-            ['Rizky Pratama', 'Finance Analyst', 'Finance'],
-            ['Siti Rahma', 'Procurement Officer', 'Procurement'],
-            ['Farhan Akbar', 'QA Engineer', 'Information Technology'],
-            ['Rani Oktaviani', 'Marketing Executive', 'Marketing'],
-            ['Andi Prasetyo', 'Site Supervisor', 'Operations'],
-            ['Maya Lestari', 'Accountant', 'Finance'],
-            ['Clara Anjani', 'HR Business Partner', 'Human Resources'],
-            ['Yusuf Hidayat', 'Senior Software Engineer', 'Information Technology'],
-            ['Auga', 'Senior Software Engineer', 'Information Technology'],
-            ['Dhani', 'Senior Software Engineer', 'Information Technology'],
-            ['Adam', 'Senior Software Engineer', 'Information Technology']
-        ])
-            ->map(
-                fn($row, $index) => [
-                    'badge' => 'BDG-' . str_pad($index + 1, 4, '0', STR_PAD_LEFT),
-                    'name' => $row[0],
-                    'position' => $row[1],
-                    'department' => $row[2],
-                ],
-            )
-            ->all();
-
-    $recentWinners = $recentWinners ?? [
-        [
-            'draw' => 12,
-            'badge' => 'BDG-0021',
-            'name' => 'Alya Putri',
-            'position' => 'Marketing Manager',
-            'department' => 'Marketing',
-        ],
-    ];
+    $participants = $participants ?? [];
+    $recentWinners = $recentWinners ?? [];
 
     $stats = [
         ['label' => 'CHECKED IN', 'key' => 'checked', 'value' => $checkedIn],
-        ['label' => 'WINNERS', 'key' => 'winners', 'value' => $winners],
+        ['label' => 'WINNERS', 'key' => 'winners', 'value' => number_format($winners).' / '.number_format($winnerSlots)],
         ['label' => 'ELIGIBLE TO SPIN', 'key' => 'eligible', 'value' => $eligible],
     ];
 
@@ -109,7 +73,11 @@
             <x-admin.sidebar active="lucky-spin" />
 
             <main class="min-w-0 flex-1 p-4 sm:p-6 lg:p-8" data-draw data-winners="{{ $winners }}"
-                data-eligible="{{ $eligible }}" data-history="{{ json_encode($recentWinners) }}">
+                data-checked-in="{{ $checkedIn }}" data-winner-slots="{{ $winnerSlots }}" data-eligible="{{ $eligible }}"
+                data-history="{{ json_encode($recentWinners) }}"
+                data-draw-url="{{ route('admin.lucky-spin.draw') }}"
+                data-forfeit-url-template="{{ route('admin.lucky-spin.forfeit', ['badge' => 'BADGE_PLACEHOLDER']) }}"
+                data-csrf-token="{{ csrf_token() }}">
                 <div class="flex flex-wrap items-start justify-between gap-4 [animation:rise_.7s_ease-out_both]">
                     <div class="min-w-0">
                         <h1
@@ -128,7 +96,7 @@
                             <p class="text-[10px] font-semibold tracking-widest text-slate-500">{{ $stat['label'] }}</p>
                             <p data-stat="{{ $stat['key'] }}"
                                 class="mt-2 text-4xl font-semibold tracking-tight sm:text-5xl">
-                                {{ number_format($stat['value']) }}</p>
+                                {{ $stat['value'] }}</p>
                         </article>
                     @endforeach
                 </section>
@@ -164,7 +132,7 @@
                     </div>
 
                     <div class="flex w-full max-w-md flex-wrap justify-center gap-3">
-                        <button type="button" data-spin
+                        <button type="button" data-spin @disabled($winners >= $winnerSlots)
                             class="flex h-12 min-w-[10rem] flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-[#c02a9c] to-[#6a2fe0] px-6 text-sm font-medium text-white shadow-lg shadow-fuchsia-400/40 transition duration-300 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-xl hover:shadow-fuchsia-400/50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-60">
                             Draw Winner
                         </button>
@@ -338,14 +306,13 @@
         const saved = load();
 
         const state = {
-            winners: saved.winners ?? Number(root.dataset.winners),
-            top: saved.top ?? saved.winners ?? Number(root.dataset.winners),
-            redraw: saved.redraw ?? [],
-            eligible: saved.eligible ?? Number(root.dataset.eligible),
+            checkedIn: Number(root.dataset.checkedIn),
+            winners: Number(root.dataset.winners),
+            winnerSlots: Number(root.dataset.winnerSlots),
+            eligible: Number(root.dataset.eligible),
             slot: count + ((saved.slot ?? 0) % Math.max(count, 1)),
             duration: clampDuration(saved.duration ?? MIN_DURATION),
-            history: saved.history ?? JSON.parse(root.dataset.history),
-            forfeited: saved.forfeited ?? [],
+            history: JSON.parse(root.dataset.history),
             spinning: false,
             current: null,
         };
@@ -353,22 +320,13 @@
         const save = () => {
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                    ...load(),
-                    winners: state.winners,
-                    top: state.top,
-                    redraw: state.redraw,
-                    eligible: state.eligible,
                     slot: state.slot,
                     duration: state.duration,
-                    history: state.history,
-                    forfeited: state.forfeited
                 }));
             } catch {
                 return;
             }
         };
-
-        const nextDraw = () => state.redraw.length ? state.redraw[0] : state.top + 1;
 
         const syncForfeit = () => {
             const visible = state.history.length > 0 && !state.spinning;
@@ -385,7 +343,7 @@
 
         const setSpinning = (value) => {
             state.spinning = value;
-            triggers.forEach((trigger) => (trigger.disabled = value));
+            triggers.forEach((trigger) => (trigger.disabled = value || state.winners >= state.winnerSlots));
             durationInput.disabled = value;
             list.querySelectorAll('[data-remove]').forEach((button) => (button.disabled = value));
             syncForfeit();
@@ -393,7 +351,41 @@
         };
 
         const setStat = (key, value) => {
-            document.querySelector(`[data-stat="${key}"]`).textContent = value.toLocaleString();
+            const displayValue = key === 'winners'
+                ? `${state.winners.toLocaleString()} / ${state.winnerSlots.toLocaleString()}`
+                : value.toLocaleString();
+            document.querySelector(`[data-stat="${key}"]`).textContent = displayValue;
+        };
+
+        const applyStats = (stats) => {
+            if (!stats) return;
+
+            state.checkedIn = stats.checkedIn;
+            state.winners = stats.winners;
+            state.winnerSlots = stats.winnerSlots;
+            state.eligible = stats.eligible;
+            setStat('checked', state.checkedIn);
+            setStat('winners', state.winners);
+            setStat('eligible', state.eligible);
+        };
+
+        const forfeitWinner = async (badge) => {
+            const url = root.dataset.forfeitUrlTemplate.replace('BADGE_PLACEHOLDER', encodeURIComponent(badge));
+            const response = await fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': root.dataset.csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'Winner could not be removed.');
+            }
+
+            return result;
         };
 
         const setResult = (title, winnerName = '', winnerBadge = '') => {
@@ -429,7 +421,7 @@
         };
 
         const showNext = () => {
-            setResult(`WINNER ${nextDraw()} IS NEXT`);
+            setResult('READY TO DRAW');
         };
 
         const begin = (data) => {
@@ -445,43 +437,57 @@
             save();
         };
 
-        const spin = () => {
+        const spin = async () => {
             if (state.spinning || !count) return;
 
-            const taken = state.history.map((item) => item.badge);
+            setSpinning(true);
 
-            const pool = participants
-                .map((_, position) => position)
-                .filter((position) => {
-                    const badge = participants[position].badge;
-                    return !state.forfeited.includes(badge) && !taken.includes(badge);
+            try {
+                const response = await fetch(root.dataset.drawUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': root.dataset.csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({}),
                 });
+                const result = await response.json();
 
-            if (!pool.length) return;
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || 'The draw could not be completed.');
+                }
 
-            const index = pool[Math.floor(Math.random() * pool.length)];
-            const delta = (index - (state.slot % count) + count) % count;
-            const draw = nextDraw();
+                const winner = result.data;
+                const index = participants.findIndex((participant) => participant.badge === winner.badge);
+                if (index < 0) throw new Error('The selected participant is not in the checked-in list.');
 
-            const data = {
-                type: 'spin',
-                slot: state.slot + LOOPS * count + delta,
-                winner: participants[index],
-                draw,
-                eligible: state.eligible,
-                duration: state.duration,
-            };
+                const delta = (index - (state.slot % count) + count) % count;
+                const data = {
+                    type: 'spin',
+                    slot: state.slot + LOOPS * count + delta,
+                    winner,
+                    draw: winner.draw,
+                    stats: result.stats,
+                    duration: state.duration,
+                };
 
-            begin(data);
-            channel?.postMessage(data);
+                begin(data);
+                channel?.postMessage(data);
+            } catch (error) {
+                setSpinning(false);
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'Draw failed',
+                    text: error.message,
+                    confirmButtonColor: '#6a2fe0',
+                });
+            }
         };
 
         const reveal = () => {
-            const {
-                winner,
-                draw,
-                eligible
-            } = state.current;
+            const { winner, draw, stats } = state.current;
 
             const entry = {
                 draw,
@@ -490,23 +496,19 @@
 
             setResult(`WINNER ${draw}`, winner.name, `BADGE ID: ${winner.badge}`);
 
-            state.history = [entry, ...state.history];
-            state.winners += 1;
-
-            if (state.redraw[0] === draw) {
-                state.redraw = state.redraw.slice(1);
-            } else {
-                state.top = draw;
+            state.history = [entry, ...state.history.filter((item) => item.badge !== winner.badge)];
+            if (stats) applyStats(stats);
+            else {
+                state.winners += 1;
+                state.eligible = Math.max(0, state.eligible - 1);
+                setStat('winners', state.winners);
+                setStat('eligible', state.eligible);
             }
-
-            state.eligible = eligible - 1;
             state.slot = count + (state.slot % count);
             state.current = null;
 
             jumpTo(state.slot);
             renderHistory();
-            setStat('winners', state.winners);
-            setStat('eligible', state.eligible);
             setSpinning(false);
             stopConfetti();
             celebrate();
@@ -534,22 +536,20 @@
             if (state.spinning) return;
             if (!state.history.some((item) => item.badge === badge)) return;
 
-            state.forfeited = [...state.forfeited, badge];
-            state.history = state.history.filter((item) => item.badge !== badge);
-            state.winners -= 1;
-            state.redraw = [...state.redraw, entry.draw].sort((a, b) => a - b);
+            setSpinning(true);
 
-            renderHistory();
-            setStat('winners', state.winners);
-            setResult(`${entry.name.toUpperCase()} FORFEITED - DRAW AGAIN`);
-            syncForfeit();
-            syncRemoveAll();
-            save();
-
-            channel?.postMessage({
-                type: 'remove',
-                badge
-            });
+            try {
+                const result = await forfeitWinner(badge);
+                state.history = state.history.filter((item) => item.badge !== badge);
+                applyStats(result.stats);
+                renderHistory();
+                setResult(`${entry.name.toUpperCase()} FORFEITED - DRAW AGAIN`);
+                channel?.postMessage({ type: 'remove', badge, stats: result.stats });
+            } catch (error) {
+                await Swal.fire({ icon: 'error', title: 'Unable to remove winner', text: error.message });
+            } finally {
+                setSpinning(false);
+            }
         };
 
         const removeAll = async () => {
@@ -570,23 +570,25 @@
             if (state.spinning || !state.history.length) return;
 
             const removed = [...state.history];
+            setSpinning(true);
 
-            state.forfeited = [...state.forfeited, ...removed.map((item) => item.badge)];
-            state.history = [];
-            state.winners -= removed.length;
-            state.redraw = [...state.redraw, ...removed.map((item) => item.draw)].sort((a, b) => a - b);
+            try {
+                let result;
+                for (const entry of removed) {
+                    result = await forfeitWinner(entry.badge);
+                }
 
-            renderHistory();
-            setStat('winners', state.winners);
-            setResult('ALL WINNERS FORFEITED - DRAW AGAIN');
-            syncForfeit();
-            syncRemoveAll();
-            save();
-
-            removed.forEach((entry) => channel?.postMessage({
-                type: 'remove',
-                badge: entry.badge
-            }));
+                state.history = [];
+                applyStats(result.stats);
+                renderHistory();
+                setResult('ALL WINNERS FORFEITED - DRAW AGAIN');
+                removed.forEach((entry) => channel?.postMessage({ type: 'remove', badge: entry.badge }));
+            } catch (error) {
+                await Swal.fire({ icon: 'error', title: 'Unable to remove all winners', text: error.message });
+                window.location.reload();
+            } finally {
+                setSpinning(false);
+            }
         };
 
         const forfeit = () => {
@@ -596,6 +598,7 @@
         };
 
         applyDuration(state.duration);
+        setStat('checked', state.checkedIn);
         setStat('winners', state.winners);
         setStat('eligible', state.eligible);
         showNext();

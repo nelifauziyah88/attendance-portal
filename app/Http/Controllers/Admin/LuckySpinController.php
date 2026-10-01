@@ -20,21 +20,14 @@ class LuckySpinController extends Controller
     public function index()
     {
         $allParticipants = $this->luckySpinService->getParticipants();
-        $existingWinnerBadges = $this->luckySpinService->getExistingWinnerBadgeIds();
+        $stats = $this->luckySpinService->getStatistics();
 
-        $checkedInCount = $allParticipants->count();
-        $winnersCount = count($existingWinnerBadges);
-
-        $eligibleCount = $allParticipants->filter(function ($p) use ($existingWinnerBadges) {
-            return !$p->is_manager && !in_array($p->badge_id, $existingWinnerBadges);
-        })->count();
-
-        $recentWinners = LuckySpin::with(['masterAttendance', 'prize'])
+        $recentWinners = LuckySpin::activeWinner()->with(['masterAttendance', 'prize'])
             ->latest()
             ->get()
             ->map(fn($item) => [
                 'id' => $item->id,
-                'draw' => $item->draw_number,
+                'draw' => $item->id,
                 'badge' => $item->badge_id,
                 'name' => $item->masterAttendance->name ?? '-',
                 'position' => $item->masterAttendance->position ?? '-',
@@ -44,10 +37,11 @@ class LuckySpinController extends Controller
 
         $prizes = $this->luckySpinService->getActivePrizes();
 
-        return view('admin.lucky-spin.index', [
-            'checkedIn' => $checkedInCount,
-            'winners' => $winnersCount,
-            'eligible' => $eligibleCount,
+        return view('admin.lucky_spin.lucky_spin', [
+            'checkedIn' => $stats['checkedIn'],
+            'winners' => $stats['winners'],
+            'winnerSlots' => $stats['winnerSlots'],
+            'eligible' => $stats['eligible'],
             'displayUrl' => route('admin.lucky-spin.display'),
             'participants' => $allParticipants->map(fn($p) => [
                 'badge' => $p->badge_id,
@@ -72,6 +66,7 @@ class LuckySpinController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $winnerData,
+                'stats' => $this->luckySpinService->getStatistics(),
             ]);
         } catch (Exception $e) {
             return response()->json([
@@ -92,6 +87,7 @@ class LuckySpinController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Pemenang berhasil dibatalkan dan stok hadiah telah dikembalikan.',
+                'stats' => $this->luckySpinService->getStatistics(),
             ]);
         } catch (Exception $e) {
             return response()->json([
@@ -106,6 +102,36 @@ class LuckySpinController extends Controller
      */
     public function display()
     {
-        return view('admin.lucky-spin.display');
+        $stats = $this->luckySpinService->getStatistics();
+        $participants = $this->luckySpinService->getParticipants()
+            ->map(fn ($participant) => [
+                'badge' => $participant->badge_id,
+                'name' => $participant->name,
+                'position' => $participant->position ?? '-',
+                'department' => $participant->department ?? '-',
+            ])
+            ->values();
+        $recentWinners = LuckySpin::activeWinner()->with(['masterAttendance', 'prize'])
+            ->latest()
+            ->get()
+            ->map(fn ($winner) => [
+                'draw' => $winner->id,
+                'badge' => $winner->badge_id,
+                'name' => $winner->masterAttendance?->name ?? '-',
+                'position' => $winner->masterAttendance?->position ?? '-',
+                'department' => $winner->masterAttendance?->department ?? '-',
+            ])
+            ->values();
+
+        return view('admin.lucky_spin.lucky_spin_display', [
+            'draw' => $stats['winners'] + 1,
+            'eligible' => $stats['eligible'],
+            'winnerSlots' => $stats['winnerSlots'],
+            'participants' => $participants,
+            'recentWinners' => $recentWinners,
+            'drawUrl' => route('admin.lucky-spin.draw'),
+            'forfeitUrlTemplate' => route('admin.lucky-spin.forfeit', ['badge' => 'BADGE_PLACEHOLDER']),
+            'csrfToken' => csrf_token(),
+        ]);
     }
 }

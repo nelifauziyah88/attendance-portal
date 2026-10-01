@@ -35,6 +35,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/confirmation/attendance', [AdminController::class, 'confirmation'])->name('confirmation.index');
     // 4. Rekap Check-In Hari-H (pgsql)
     Route::get('/attendance/list', [AdminController::class, 'attendance'])->name('attendance.index');
+    Route::get('/prizes', [AdminController::class, 'prizes'])->name('prizes.index');
 
     Route::prefix('lucky-spin')->name('lucky-spin.')->group(function () {
         Route::get('/', [LuckySpinController::class, 'index'])->name('index');
@@ -43,5 +44,3 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/display', [LuckySpinController::class, 'display'])->name('display');
     });
 });
-    Route::view('/admin/prizes', 'admin.prizes.index')
-    ->name('admin.prizes.index');

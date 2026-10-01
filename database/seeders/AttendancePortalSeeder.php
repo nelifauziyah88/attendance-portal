@@ -44,11 +44,10 @@ class AttendancePortalSeeder extends Seeder
         ];
 
         foreach ($prizes as $prize) {
-            Prize::updateOrCreate(
+            Prize::firstOrCreate(
                 ['name' => $prize['name']],
                 [
                     'stock' => $prize['stock'],
-                    'current_stock' => $prize['stock'],
                     'image' => null,
                 ]
             );

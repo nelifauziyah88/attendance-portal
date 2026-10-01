@@ -6,6 +6,7 @@ use App\Models\MasterAttendance;
 use App\Models\Invitation;
 use App\Models\Confirmation;
 use App\Models\Attendance;
+use App\Models\Prize;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -159,5 +160,32 @@ class AdminController extends Controller
         });
 
         return view('admin.attendance.index', compact('attendances', 'search'));
+    }
+
+    public function prizes()
+    {
+        if (! Auth::check()) {
+            return redirect()->route('admin.login');
+        }
+
+        $prizes = Prize::query()
+            ->with(['luckySpins.masterAttendance'])
+            ->orderBy('name')
+            ->get()
+            ->map(function (Prize $prize) {
+                $winners = $prize->luckySpins
+                    ->map(fn ($spin) => $spin->masterAttendance)
+                    ->filter();
+
+                return [
+                    'name' => $prize->name,
+                    'stock' => $prize->stock,
+                    'winner' => $winners->pluck('name')->unique()->implode(', '),
+                    'badge' => $prize->luckySpins->pluck('badge_id')->implode(', '),
+                    'department' => $winners->pluck('department')->filter()->unique()->implode(', '),
+                ];
+            });
+
+        return view('admin.prizes.index', compact('prizes'));
     }
 }

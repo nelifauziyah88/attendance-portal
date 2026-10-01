@@ -24,33 +24,14 @@
 @php
     $event = ['name' => ''];
 
-    $columns = ['NO.', 'PRIZE', 'STATUS', 'WINNER', 'BADGE ID', 'DEPARTMENT'];
+    $columns = ['NO.', 'PRIZE', 'STOCK LEFT', 'STATUS', 'WINNER', 'BADGE ID', 'DEPARTMENT'];
 
     $statuses = [
         'given' => ['label' => 'Given', 'class' => 'bg-emerald-50 text-emerald-600'],
         'available' => ['label' => 'Available', 'class' => 'bg-blue-50 text-[#3563ff]'],
     ];
 
-    $prizes = collect(
-        $prizes ?? [
-            [
-                'name' => 'Smart TV',
-                'winner' => 'Kevin Wijaya',
-                'badge' => 'BDG-0001',
-                'department' => 'Information Technology',
-            ],
-            [
-                'name' => 'Air Fryer',
-                'winner' => 'Sarah Amelia',
-                'badge' => 'BDG-0002',
-                'department' => 'Marketing',
-            ],
-            ['name' => 'Electric Scooter', 'winner' => null, 'badge' => null, 'department' => null],
-            ['name' => 'Espresso Machine', 'winner' => null, 'badge' => null, 'department' => null],
-            ['name' => 'Smartwatch', 'winner' => null, 'badge' => null, 'department' => null],
-            ['name' => 'Shopping Voucher', 'winner' => null, 'badge' => null, 'department' => null],
-        ],
-    )->values();
+    $prizes = collect($prizes ?? [])->values();
 @endphp
 
 <body
@@ -103,6 +84,8 @@
                                         <td
                                             class="border-b border-slate-100 px-3 py-4 font-semibold text-[#26346b] sm:px-5 sm:py-8">
                                             {{ $prize['name'] }}</td>
+                                        <td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">
+                                            {{ number_format($prize['stock']) }}</td>
                                         <td
                                             class="whitespace-nowrap border-b border-slate-100 px-3 py-4 sm:px-5 sm:py-8">
                                             <span
