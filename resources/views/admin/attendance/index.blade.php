@@ -100,22 +100,88 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="mt-5">{{ $attendances->links() }}</div>
+                    <div id="attendance-pagination" class="mt-5">{{ $attendances->links() }}</div>
                 </section>
             </main>
         </div>
     </div>
     <script>
-        function search() {
-            const url = new URL(window.location.href);
-            const query = input.value.trim();
-            url.searchParams.delete('page');
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('attendance-search-form');
+            const input = document.getElementById('attendance-search-input');
+            const pagination = document.getElementById('attendance-pagination');
+            const table = document.getElementById('attendance-table');
+            let debounceTimer;
+            let activeRequest;
 
-            if (query) url.searchParams.set('search', query);
-            else url.searchParams.delete('search');
+            async function loadResults(url, historyMode = 'replace') {
+                activeRequest?.abort();
+                activeRequest = new AbortController();
+                table.setAttribute('aria-busy', 'true');
 
-            loadResults(url.toString());
-        }
+                try {
+                    const response = await fetch(url, {
+                        headers: {
+                            'Accept': 'text/html',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        signal: activeRequest.signal,
+                    });
+
+                    if (!response.ok) throw new Error('Unable to load attendance results.');
+
+                    const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+                    const nextBody = page.querySelector('#attendance-table tbody');
+                    const nextPagination = page.getElementById('attendance-pagination');
+
+                    if (!nextBody) throw new Error('Attendance table was not returned.');
+
+                    table.tBodies[0].replaceWith(nextBody);
+                    pagination.innerHTML = nextPagination?.innerHTML ?? '';
+
+                    if (historyMode === 'push') history.pushState({}, '', url);
+                    else if (historyMode === 'replace') history.replaceState({}, '', url);
+                } catch (error) {
+                    if (error.name !== 'AbortError') console.error(error);
+                } finally {
+                    table.removeAttribute('aria-busy');
+                }
+            }
+
+            function search() {
+                const url = new URL(window.location.href);
+                const query = input.value.trim();
+                url.searchParams.delete('page');
+
+                if (query) url.searchParams.set('search', query);
+                else url.searchParams.delete('search');
+
+                loadResults(url.toString());
+            }
+
+            form.addEventListener('submit', event => {
+                event.preventDefault();
+                search();
+            });
+
+            input.addEventListener('input', () => {
+                window.clearTimeout(debounceTimer);
+                debounceTimer = window.setTimeout(search, 300);
+            });
+
+            pagination.addEventListener('click', event => {
+                const link = event.target.closest('a[href]');
+                if (!link) return;
+
+                event.preventDefault();
+                loadResults(link.href, 'push');
+            });
+
+            window.addEventListener('popstate', () => {
+                input.value = new URLSearchParams(window.location.search).get('search') ?? '';
+                loadResults(window.location.href, 'none');
+            });
+        });
     </script>
 </body>
 
