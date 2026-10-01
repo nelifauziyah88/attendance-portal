@@ -23,17 +23,6 @@
         ['number' => '01', 'label' => 'RSVP Complete', 'done' => true],
         ['number' => '02', 'label' => 'Event Check-in', 'done' => false],
     ];
-
-    $clusters = [
-        [
-            'position' => '-left-4 [animation:drift_9s_ease-in-out_infinite]',
-            'circles' => ['left-6 top-0', 'left-0 top-8', 'left-12 top-8', 'left-6 top-16'],
-        ],
-        [
-            'position' => '-right-4 [animation:drift_11s_ease-in-out_infinite_reverse]',
-            'circles' => ['right-6 top-0', 'right-0 top-8', 'right-12 top-8', 'right-6 top-16'],
-        ],
-    ];
 @endphp
 
 @section('content')
@@ -68,20 +57,11 @@
 
     <section class="relative z-10 flex flex-1 flex-col items-center px-3 pb-8 pt-8 sm:px-6 sm:pt-10">
         <article
-            class="w-full max-w-3xl rounded-3xl border border-violet-300/60 bg-white p-5 shadow-xl shadow-fuchsia-200/50 sm:p-10 [animation:rise_.8s_.2s_ease-out_both]">
-            <div class="grid items-center gap-6 sm:grid-cols-[auto_1fr] sm:gap-12">
-                <span
-                    class="mx-auto grid size-24 place-items-center rounded-full bg-gradient-to-br from-fuchsia-50 to-violet-100 shadow-inner ring-1 ring-cyan-300/40 transition duration-500 hover:scale-105 sm:size-36">
-                    <svg class="size-12 text-fuchsia-600 sm:size-16" viewBox="0 0 24 24" fill="currentColor">
-                        <circle cx="12" cy="8" r="4.2" />
-                        <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7z" />
-                    </svg>
-                </span>
-
-                <dl class="min-w-0">
+            class="w-full max-w-xl rounded-3xl border border-violet-300/60 bg-white p-5 shadow-xl shadow-fuchsia-200/50 sm:p-10 [animation:rise_.8s_.2s_ease-out_both]">
+                <dl class="w-full min-w-0">
                     @foreach ($details as $detail)
                         <div @class([
-                            'grid grid-cols-[5.5rem_1fr] items-center gap-3 py-3 text-sm sm:grid-cols-[8rem_1fr] sm:py-3.5 sm:text-base',
+                            'grid w-full grid-cols-[7rem_1fr] font-bold items-center gap-3 py-3 text-sm sm:grid-cols-[10rem_1fr] sm:py-4 sm:text-base',
                             'border-b border-violet-200' => !$loop->last,
                             'pt-0' => $loop->first,
                             'pb-0' => $loop->last,
