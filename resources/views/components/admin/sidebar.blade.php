@@ -2,11 +2,11 @@
 
 @php
     $items = [
-        ['key' => 'dashboard', 'label' => 'Dashboard', 'href' => '/admin/dashboard', 'icon' => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>'],
-        ['key' => 'information-list', 'label' => 'Information List', 'href' => '/admin/employee/information', 'icon' => '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'],
-        ['key' => 'confirmation-attendance', 'label' => 'Confirmation Attendance', 'href' => '/admin/confirmation/attendance', 'icon' => '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h9"/>'],
-        ['key' => 'attendance-list', 'label' => 'Attendance List', 'href' => '/admin/attendance/list', 'icon' => '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>'],
-        ['key' => 'lucky-spin', 'label' => 'Lucky Spin', 'href' => '/admin/lucky-spin', 'icon' => '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/>'],
+        ['key' => 'dashboard', 'label' => 'Dashboard', 'href' => route('admin.dashboard'), 'icon' => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>'],
+        ['key' => 'information-list', 'label' => 'Information List', 'href' => route('admin.employee.index'), 'icon' => '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'],
+        ['key' => 'confirmation-attendance', 'label' => 'Confirmation Attendance', 'href' => route('admin.confirmation.index'), 'icon' => '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h9"/>'],
+        ['key' => 'attendance-list', 'label' => 'Attendance List', 'href' => route('admin.attendance.index'), 'icon' => '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1_0_7.8"/>'],
+        ['key' => 'lucky-spin', 'label' => 'Lucky Spin', 'href' => url('admin/lucky-spin'), 'icon' => '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/>'],
     ];
 @endphp
 
@@ -21,7 +21,7 @@
                 @foreach ($items as $item)
                     @php($isActive = $item['key'] === $active)
                     <li>
-                        <a href="{{ $item['href'] }}" @class([
+                        <a href={{ $item['href'] }} @class([
                             'group flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition duration-300',
                             'bg-blue-50 font-medium text-[#3563ff]' => $isActive,
                             'text-slate-500 hover:translate-x-1 hover:bg-slate-50 hover:text-[#26346b]' => ! $isActive,
