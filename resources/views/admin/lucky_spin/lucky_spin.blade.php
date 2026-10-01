@@ -195,7 +195,14 @@
                 </section>
 
                 <section class="{{ $card }} mt-6 min-w-0 [animation:rise_.7s_.5s_ease-out_both]">
-                    <h2 class="text-lg font-semibold tracking-tight sm:text-xl">Winners</h2>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <h2 class="text-lg font-semibold tracking-tight sm:text-xl">Winners</h2>
+
+                        <button type="button" data-remove-all
+                            class="hidden h-9 items-center justify-center rounded-lg border border-red-200 bg-white px-4 text-xs font-medium text-red-600 transition duration-300 hover:border-red-400 hover:bg-red-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
+                            Remove All
+                        </button>
+                    </div>
 
                     <div class="mt-4 overflow-x-auto overscroll-x-contain">
                         <table class="w-full min-w-[40rem] text-left text-sm">
@@ -236,6 +243,7 @@
         const strip = document.querySelector('[data-strip]');
         const triggers = document.querySelectorAll('[data-spin]');
         const forfeitButton = document.querySelector('[data-forfeit]');
+        const removeAllButton = document.querySelector('[data-remove-all]');
         const note = document.querySelector('[data-result-note]');
         const resultName = document.querySelector('[data-result-name]');
         const resultBadge = document.querySelector('[data-result-badge]');
@@ -387,12 +395,20 @@
             forfeitButton.classList.toggle('flex', visible);
         };
 
+        const syncRemoveAll = () => {
+            const visible = state.history.length > 0;
+            removeAllButton.classList.toggle('hidden', !visible);
+            removeAllButton.classList.toggle('inline-flex', visible);
+            removeAllButton.disabled = state.spinning;
+        };
+
         const setSpinning = (value) => {
             state.spinning = value;
             triggers.forEach((trigger) => (trigger.disabled = value));
             durationInput.disabled = value;
             list.querySelectorAll('[data-remove]').forEach((button) => (button.disabled = value));
             syncForfeit();
+            syncRemoveAll();
         };
 
         const setStat = (key, value) => {
@@ -551,12 +567,50 @@
             setStat('winners', state.winners);
             setResult(`${entry.name.toUpperCase()} FORFEITED`, '', '', `PRIZE: ${prizeFor(entry.draw)} - DRAW AGAIN`);
             syncForfeit();
+            syncRemoveAll();
             save();
 
             channel?.postMessage({
                 type: 'remove',
                 badge
             });
+        };
+
+        const removeAll = async () => {
+            if (state.spinning || !state.history.length) return;
+
+            const confirmation = await Swal.fire({
+                title: `Remove all ${state.history.length} winners?`,
+                text: 'All prizes will be drawn again.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, remove all',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true
+            });
+
+            if (!confirmation.isConfirmed) return;
+            if (state.spinning || !state.history.length) return;
+
+            const removed = [...state.history];
+
+            state.forfeited = [...state.forfeited, ...removed.map((item) => item.badge)];
+            state.history = [];
+            state.winners -= removed.length;
+            state.redraw = [...state.redraw, ...removed.map((item) => item.draw)].sort((a, b) => a - b);
+
+            renderHistory();
+            setStat('winners', state.winners);
+            setResult('ALL WINNERS FORFEITED', '', '', `PRIZE: ${prizeFor(nextDraw())} - DRAW AGAIN`);
+            syncForfeit();
+            syncRemoveAll();
+            save();
+
+            removed.forEach((entry) => channel?.postMessage({
+                type: 'remove',
+                badge: entry.badge
+            }));
         };
 
         const forfeit = () => {
@@ -572,6 +626,7 @@
         renderHistory();
         jumpTo(state.slot);
         syncForfeit();
+        syncRemoveAll();
 
         durationInput.addEventListener('input', () => {
             const seconds = Number(durationInput.value);
@@ -603,6 +658,7 @@
 
         triggers.forEach((trigger) => trigger.addEventListener('click', spin));
         forfeitButton.addEventListener('click', forfeit);
+        removeAllButton.addEventListener('click', removeAll);
 
         list.addEventListener('click', (event) => {
             const button = event.target.closest('[data-remove]');
