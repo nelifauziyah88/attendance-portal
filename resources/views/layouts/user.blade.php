@@ -64,6 +64,7 @@
     </main>
 
     @stack('scripts')
+    <x-user.scroll_buttons />
 </body>
 
 </html>
