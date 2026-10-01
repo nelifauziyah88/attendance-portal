@@ -523,7 +523,7 @@
 
             const confirmation = await Swal.fire({
                 title: `Remove ${entry.name}?`,
-                text: 'This winner will be drawn again.',
+                text: 'This winner will not be drawn again.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, remove',
@@ -557,7 +557,7 @@
 
             const confirmation = await Swal.fire({
                 title: `Remove all ${state.history.length} winners?`,
-                text: 'All winners will be drawn again.',
+                text: 'All winners will not be drawn again.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, remove all',

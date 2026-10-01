@@ -99,6 +99,18 @@
             </main>
         </div>
     </div>
+    <script>
+        function search() {
+            const url = new URL(window.location.href);
+            const query = input.value.trim();
+            url.searchParams.delete('page');
+
+            if (query) url.searchParams.set('search', query);
+            else url.searchParams.delete('search');
+
+            loadResults(url.toString());
+        }
+    </script>
 </body>
 
 </html>
