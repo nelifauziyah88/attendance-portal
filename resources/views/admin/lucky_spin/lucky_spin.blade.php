@@ -40,15 +40,6 @@
 
     $displayUrl = $displayUrl ?? url('/admin/lucky-spin/display');
 
-    $prizes = $prizes ?? [
-        'Smart TV',
-        'Air Fryer',
-        'Electric Scooter',
-        'Espresso Machine',
-        'Smartwatch',
-        'Shopping Voucher',
-    ];
-
     $participants =
         $participants ??
         collect([
@@ -85,7 +76,6 @@
             'name' => 'Alya Putri',
             'position' => 'Marketing Manager',
             'department' => 'Marketing',
-            'prize' => 'Shopping Voucher',
         ],
     ];
 
@@ -100,7 +90,6 @@
         'name' => 'Name',
         'position' => 'Position',
         'department' => 'Department',
-        'prize' => 'Prize',
     ];
 
     $card = 'rounded-2xl border border-purple-200/70 bg-white p-4 shadow-lg shadow-purple-200/50 sm:p-6';
@@ -120,8 +109,7 @@
             <x-admin.sidebar active="lucky-spin" />
 
             <main class="min-w-0 flex-1 p-4 sm:p-6 lg:p-8" data-draw data-winners="{{ $winners }}"
-                data-eligible="{{ $eligible }}" data-history="{{ json_encode($recentWinners) }}"
-                data-prizes="{{ json_encode($prizes) }}">
+                data-eligible="{{ $eligible }}" data-history="{{ json_encode($recentWinners) }}">
                 <div class="flex flex-wrap items-start justify-between gap-4 [animation:rise_.7s_ease-out_both]">
                     <div class="min-w-0">
                         <h1
@@ -156,9 +144,6 @@
                         </p>
                         <p data-result-badge
                             class="mt-0.5 break-words text-xs font-medium tracking-widest text-[#bfe6ff] empty:hidden sm:text-sm">
-                        </p>
-                        <p data-result-prize
-                            class="mt-2 inline-block rounded-full border border-[#5ad2ff]/60 bg-white/15 px-4 py-1 text-xs font-semibold tracking-widest text-white empty:hidden sm:text-sm">
                         </p>
                     </div>
 
@@ -247,7 +232,6 @@
         const note = document.querySelector('[data-result-note]');
         const resultName = document.querySelector('[data-result-name]');
         const resultBadge = document.querySelector('[data-result-badge]');
-        const resultPrize = document.querySelector('[data-result-prize]');
         const list = document.querySelector('[data-winner-list]');
         const template = document.getElementById('winner-template');
         const durationInput = document.querySelector('[data-duration-input]');
@@ -260,12 +244,9 @@
         const CONFETTI_COLORS = ['#ffffff', '#e9b6ff', '#ff5fd2', '#5ad2ff', '#ffd666'];
 
         const participants = JSON.parse(reel.dataset.participants);
-        const prizes = JSON.parse(root.dataset.prizes);
         const count = participants.length;
 
         let confettiTimer = null;
-
-        const prizeFor = (draw) => prizes.length ? prizes[(draw - 1) % prizes.length] : 'Special Prize';
 
         const fire = (options) => window.confetti?.({
             colors: CONFETTI_COLORS,
@@ -415,11 +396,10 @@
             document.querySelector(`[data-stat="${key}"]`).textContent = value.toLocaleString();
         };
 
-        const setResult = (title, winnerName = '', winnerBadge = '', winnerPrize = '') => {
+        const setResult = (title, winnerName = '', winnerBadge = '') => {
             note.textContent = title;
             resultName.textContent = winnerName;
             resultBadge.textContent = winnerBadge;
-            resultPrize.textContent = winnerPrize;
         };
 
         const applyDuration = (value) => {
@@ -449,8 +429,7 @@
         };
 
         const showNext = () => {
-            const next = nextDraw();
-            setResult(`WINNER ${next} IS NEXT`, '', '', `PRIZE: ${prizeFor(next)}`);
+            setResult(`WINNER ${nextDraw()} IS NEXT`);
         };
 
         const begin = (data) => {
@@ -458,7 +437,7 @@
             state.slot = data.slot;
 
             setSpinning(true);
-            setResult(`DRAWING WINNER ${data.draw}`, '', '', `PRIZE: ${data.prize}`);
+            setResult(`DRAWING WINNER ${data.draw}`);
             strip.style.transitionDuration = `${data.duration}s`;
             moveTo(data.slot);
             startConfetti();
@@ -489,7 +468,6 @@
                 slot: state.slot + LOOPS * count + delta,
                 winner: participants[index],
                 draw,
-                prize: prizeFor(draw),
                 eligible: state.eligible,
                 duration: state.duration,
             };
@@ -502,17 +480,15 @@
             const {
                 winner,
                 draw,
-                prize,
                 eligible
             } = state.current;
 
             const entry = {
                 draw,
-                ...winner,
-                prize
+                ...winner
             };
 
-            setResult(`WINNER ${draw}`, winner.name, `BADGE ID: ${winner.badge}`, `PRIZE: ${prize}`);
+            setResult(`WINNER ${draw}`, winner.name, `BADGE ID: ${winner.badge}`);
 
             state.history = [entry, ...state.history];
             state.winners += 1;
@@ -545,7 +521,7 @@
 
             const confirmation = await Swal.fire({
                 title: `Remove ${entry.name}?`,
-                text: 'The prize will be drawn again.',
+                text: 'This winner will be drawn again.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, remove',
@@ -565,7 +541,7 @@
 
             renderHistory();
             setStat('winners', state.winners);
-            setResult(`${entry.name.toUpperCase()} FORFEITED`, '', '', `PRIZE: ${prizeFor(entry.draw)} - DRAW AGAIN`);
+            setResult(`${entry.name.toUpperCase()} FORFEITED - DRAW AGAIN`);
             syncForfeit();
             syncRemoveAll();
             save();
@@ -581,7 +557,7 @@
 
             const confirmation = await Swal.fire({
                 title: `Remove all ${state.history.length} winners?`,
-                text: 'All prizes will be drawn again.',
+                text: 'All winners will be drawn again.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, remove all',
@@ -602,7 +578,7 @@
 
             renderHistory();
             setStat('winners', state.winners);
-            setResult('ALL WINNERS FORFEITED', '', '', `PRIZE: ${prizeFor(nextDraw())} - DRAW AGAIN`);
+            setResult('ALL WINNERS FORFEITED - DRAW AGAIN');
             syncForfeit();
             syncRemoveAll();
             save();

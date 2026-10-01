@@ -39,15 +39,6 @@
     $draw = $draw ?? 13;
     $eligible = $eligible ?? 528;
 
-    $prizes = $prizes ?? [
-        'Smart TV',
-        'Air Fryer',
-        'Electric Scooter',
-        'Espresso Machine',
-        'Smartwatch',
-        'Shopping Voucher',
-    ];
-
     $participants =
         $participants ??
         collect([
@@ -99,7 +90,6 @@
         'name' => 'Name',
         'position' => 'Position',
         'department' => 'Department',
-        'prize' => 'Prize',
     ];
 
     $sounds = [
@@ -114,8 +104,7 @@
 <body
     class="h-screen h-dvh overflow-hidden bg-gradient-to-tr from-[#a0237c] via-[#5a1a85] to-[#2a0b5c] font-normal text-white antialiased [font-family:'Plus_Jakarta_Sans',ui-sans-serif,system-ui,sans-serif]"
     data-display data-draw="{{ $draw }}" data-eligible="{{ $eligible }}"
-    data-prizes="{{ json_encode($prizes) }}" data-suspense-sound="{{ $sounds['suspense'] }}"
-    data-clapping-sound="{{ $sounds['clapping'] }}">
+    data-suspense-sound="{{ $sounds['suspense'] }}" data-clapping-sound="{{ $sounds['clapping'] }}">
     <div class="{{ $stars }} pointer-events-none absolute inset-0"></div>
 
     <div class="relative flex h-full flex-col p-3 sm:p-6">
@@ -182,9 +171,6 @@
                 <p data-winner-badge
                     class="mt-3 break-words text-xs font-semibold tracking-widest text-[#b0249a] sm:mt-4 sm:text-lg">
                 </p>
-                <p data-winner-prize
-                    class="mt-4 inline-block break-words rounded-full bg-purple-50 px-5 py-2 text-xs font-semibold tracking-widest text-[#2a0b5c] empty:hidden sm:mt-5 sm:text-lg">
-                </p>
             </div>
         </div>
     </div>
@@ -208,7 +194,6 @@
         const card = document.querySelector('[data-card]');
         const name = document.querySelector('[data-winner-name]');
         const badge = document.querySelector('[data-winner-badge]');
-        const prizeLabel = document.querySelector('[data-winner-prize]');
         const section = document.querySelector('[data-winners-section]');
         const list = document.querySelector('[data-winner-list]');
         const template = document.getElementById('winner-template');
@@ -225,7 +210,6 @@
         const CONFETTI_COLORS = ['#ffffff', '#e9b6ff', '#ff5fd2', '#5ad2ff', '#ffd666'];
 
         const participants = JSON.parse(reel.dataset.participants);
-        const prizes = JSON.parse(root.dataset.prizes);
         const count = participants.length;
 
         const suspenseSound = new Audio(root.dataset.suspenseSound);
@@ -237,8 +221,6 @@
         let confettiTimer = null;
         let fadeTimer = null;
         let unlocked = false;
-
-        const prizeFor = (draw) => prizes.length ? prizes[(draw - 1) % prizes.length] : 'Special Prize';
 
         const stopSound = (audio) => {
             audio.pause();
@@ -509,7 +491,6 @@
                 slot: state.slot + LOOPS * count + delta,
                 winner: participants[index],
                 draw,
-                prize: prizeFor(draw),
                 eligible: state.eligible,
                 duration: state.duration,
             };
@@ -522,19 +503,16 @@
             const {
                 winner,
                 draw,
-                prize,
                 eligible
             } = state.current;
 
             const entry = {
                 draw,
-                ...winner,
-                prize
+                ...winner
             };
 
             name.textContent = winner.name;
             badge.textContent = `BADGE ID: ${winner.badge}`;
-            prizeLabel.textContent = `PRIZE: ${prize}`;
 
             state.history = [entry, ...state.history];
             state.winners += 1;

@@ -43,3 +43,6 @@ Route::view('/admin/lucky-spin', 'admin.lucky_spin.lucky_spin')
 
 Route::view('/admin/lucky-spin/display', 'admin.lucky_spin.lucky_spin_display')
     ->name('admin.lucky-spin.display');
+
+    Route::view('/admin/prizes', 'admin.prizes.index')
+    ->name('admin.prizes.index');

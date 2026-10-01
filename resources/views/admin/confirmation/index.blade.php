@@ -133,6 +133,7 @@
                 try {
                     const response = await fetch(url, {
                         headers: {
+                            'Accept': 'application/json',
                             'X-Requested-With': 'XMLHttpRequest'
                         },
                         signal: activeRequest.signal,
