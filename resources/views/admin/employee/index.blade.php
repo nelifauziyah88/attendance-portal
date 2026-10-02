@@ -24,7 +24,7 @@
 @php
     $event = ['name' => ''];
 
-    $columns = ['NO.', 'BADGE ID', 'NAME', 'POSITION', 'DEPARTMENT'];
+    $columns = ['NO.', 'BADGE ID', 'NAME', 'POSITION', 'DEPARTMENT', 'ACTION'];
 
 @endphp
 
@@ -66,7 +66,32 @@
                                             'whitespace-nowrap px-3 py-4 font-semibold sm:px-5 sm:py-5',
                                             'rounded-l-xl' => $loop->first,
                                             'rounded-r-xl' => $loop->last,
-                                        ])>{{ $column }}</th>
+                                        ])>
+                                            @if ($column === 'ACTION')
+                                                <span class="relative inline-flex items-center gap-1.5">
+                                                    {{ $column }}
+                                                    <button type="button" data-info-toggle aria-expanded="false"
+                                                        aria-controls="action-info" aria-label="About the action column"
+                                                        class="grid size-5 place-items-center rounded-full text-slate-400 transition duration-300 hover:text-[#582764] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 aria-expanded:text-[#582764]">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                            stroke-width="2" stroke-linecap="round"
+                                                            stroke-linejoin="round" class="size-4" aria-hidden="true">
+                                                            <circle cx="12" cy="12" r="9" />
+                                                            <path d="M12 11v5" />
+                                                            <path d="M12 8h.01" />
+                                                        </svg>
+                                                    </button>
+                                                    <div id="action-info" role="tooltip" hidden
+                                                        class="absolute right-0 top-full z-20 mt-3 w-56 whitespace-normal rounded-2xl rounded-tr-sm bg-[#582764] px-4 py-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-white shadow-xl shadow-blue-200/60">
+                                                        <span
+                                                            class="absolute -top-1 right-2 size-3 rotate-45 bg-[#582764]"></span>
+                                                        <p class="relative">Tindakan ini digunakan untuk menandai karyawan jika mereka adalah seorang manager.</p>
+                                                    </div>
+                                                </span>
+                                            @else
+                                                {{ $column }}
+                                            @endif
+                                        </th>
                                     @endforeach
                                 </tr>
                             </thead>
@@ -88,6 +113,19 @@
                                             {{ $employee['position'] }}</td>
                                         <td class="border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">
                                             {{ $employee['department'] }}</td>
+                                        <td class="border-b border-slate-100 px-3 py-4 sm:px-5 sm:py-8">
+                                            <button type="button" data-check data-badge="{{ $employee['badge'] }}"
+                                                aria-pressed="false"
+                                                aria-label="Mark {{ $employee['name'] }} as checked"
+                                                title="Mark as checked"
+                                                class="grid size-9 place-items-center rounded-lg border-2 border-slate-200 bg-white text-transparent transition duration-300 hover:border-[#3563ff] hover:text-slate-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 active:scale-95 aria-pressed:border-emerald-500 aria-pressed:bg-emerald-500 aria-pressed:text-white">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+                                                    class="size-5" aria-hidden="true">
+                                                    <path d="M5 12.5l4.5 4.5L19 7.5" />
+                                                </svg>
+                                            </button>
+                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
@@ -105,82 +143,126 @@
         </div>
     </div>
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('employee-search-form');
-        const input = document.getElementById('employee-search-input');
-        const pagination = document.getElementById('employee-pagination');
-        const table = document.getElementById('employee-table');
-        let debounceTimer;
-        let activeRequest;
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('employee-search-form');
+            const input = document.getElementById('employee-search-input');
+            const pagination = document.getElementById('employee-pagination');
+            const table = document.getElementById('employee-table');
+            const checked = new Set();
+            let debounceTimer;
+            let activeRequest;
 
-        async function loadResults(url, historyMode = 'replace') {
-            activeRequest?.abort();
-            activeRequest = new AbortController();
-            table.setAttribute('aria-busy', 'true');
-
-            try {
-                const response = await fetch(url, {
-                    headers: {
-                        'Accept': 'text/html',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    signal: activeRequest.signal,
+            function applyChecks() {
+                table.querySelectorAll('[data-check]').forEach(button => {
+                    const isChecked = checked.has(button.dataset.badge);
+                    button.setAttribute('aria-pressed', isChecked ? 'true' : 'false');
+                    button.title = isChecked ? 'Mark as unchecked' : 'Mark as checked';
                 });
-
-                if (!response.ok) throw new Error('Unable to load employee results.');
-
-                const page = new DOMParser().parseFromString(await response.text(), 'text/html');
-                const nextBody = page.querySelector('#employee-table tbody');
-                const nextPagination = page.getElementById('employee-pagination');
-
-                if (!nextBody) throw new Error('Employee table was not returned.');
-
-                table.tBodies[0].replaceWith(nextBody);
-                pagination.innerHTML = nextPagination?.innerHTML ?? '';
-
-                if (historyMode === 'push') history.pushState({}, '', url);
-                else if (historyMode === 'replace') history.replaceState({}, '', url);
-            } catch (error) {
-                if (error.name !== 'AbortError') console.error(error);
-            } finally {
-                table.removeAttribute('aria-busy');
             }
-        }
+            async function loadResults(url, historyMode = 'replace') {
+                activeRequest?.abort();
+                activeRequest = new AbortController();
+                table.setAttribute('aria-busy', 'true');
 
-        function search() {
-            const url = new URL(window.location.href);
-            const query = input.value.trim();
-            url.searchParams.delete('page');
+                try {
+                    const response = await fetch(url, {
+                        headers: {
+                            'Accept': 'text/html',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        signal: activeRequest.signal,
+                    });
 
-            if (query) url.searchParams.set('search', query);
-            else url.searchParams.delete('search');
+                    if (!response.ok) throw new Error('Unable to load employee results.');
 
-            loadResults(url.toString());
-        }
+                    const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+                    const nextBody = page.querySelector('#employee-table tbody');
+                    const nextPagination = page.getElementById('employee-pagination');
 
-        form.addEventListener('submit', event => {
-            event.preventDefault();
-            search();
+                    if (!nextBody) throw new Error('Employee table was not returned.');
+
+                    table.tBodies[0].replaceWith(nextBody);
+                    pagination.innerHTML = nextPagination?.innerHTML ?? '';
+
+                    applyChecks();
+
+                    if (historyMode === 'push') history.pushState({}, '', url);
+                    else if (historyMode === 'replace') history.replaceState({}, '', url);
+                } catch (error) {
+                    if (error.name !== 'AbortError') console.error(error);
+                } finally {
+                    table.removeAttribute('aria-busy');
+                }
+            }
+
+            function search() {
+                const url = new URL(window.location.href);
+                const query = input.value.trim();
+                url.searchParams.delete('page');
+
+                if (query) url.searchParams.set('search', query);
+                else url.searchParams.delete('search');
+
+                loadResults(url.toString());
+            }
+
+            form.addEventListener('submit', event => {
+                event.preventDefault();
+                search();
+            });
+
+            input.addEventListener('input', () => {
+                window.clearTimeout(debounceTimer);
+                debounceTimer = window.setTimeout(search, 300);
+            });
+
+            pagination.addEventListener('click', event => {
+                const link = event.target.closest('a[href]');
+                if (!link) return;
+
+                event.preventDefault();
+                loadResults(link.href, 'push');
+            });
+
+            table.addEventListener('click', event => {
+                const button = event.target.closest('[data-check]');
+                if (!button) return;
+
+                const badge = button.dataset.badge;
+
+                if (checked.has(badge)) checked.delete(badge);
+                else checked.add(badge);
+
+                applyChecks();
+            });
+
+            const infoToggle = document.querySelector('[data-info-toggle]');
+            const infoBubble = document.getElementById('action-info');
+
+            function setInfo(open) {
+                infoBubble.hidden = !open;
+                infoToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            }
+
+            infoToggle.addEventListener('click', event => {
+                event.stopPropagation();
+                setInfo(infoBubble.hidden);
+            });
+
+            document.addEventListener('click', event => {
+                if (!infoBubble.contains(event.target)) setInfo(false);
+            });
+
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape') setInfo(false);
+            });
+
+            window.addEventListener('popstate', () => {
+                input.value = new URLSearchParams(window.location.search).get('search') ?? '';
+                loadResults(window.location.href, 'none');
+            });
         });
-
-        input.addEventListener('input', () => {
-            window.clearTimeout(debounceTimer);
-            debounceTimer = window.setTimeout(search, 300);
-        });
-
-        pagination.addEventListener('click', event => {
-            const link = event.target.closest('a[href]');
-            if (!link) return;
-
-            event.preventDefault();
-            loadResults(link.href, 'push');
-        });
-
-        window.addEventListener('popstate', () => {
-            input.value = new URLSearchParams(window.location.search).get('search') ?? '';
-            loadResults(window.location.href, 'none');
-        });
-    });
-</script>
+    </script>
 </body>
+
 </html>

@@ -53,14 +53,33 @@
 
                 <section
                     class="mt-6 min-w-0 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-lg shadow-blue-100/50 sm:mt-8 sm:p-6 [animation:rise_.7s_.1s_ease-out_both]">
-                    <form id="confirmation-search-form" method="GET" action="{{ url()->current() }}"
-                        class="mb-4 w-full sm:ml-auto sm:max-w-sm">
-                        <input id="confirmation-search-input" type="search" name="search" value="{{ $search }}"
-                            placeholder="Search badge ID or employee..." aria-label="Search badge ID or employee"
-                            autocomplete="off"
-                            class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100">
-                        <button type="submit" class="sr-only">Search</button>
-                    </form>
+                    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                        <form id="confirmation-search-form" method="GET" action="{{ url()->current() }}"
+                            class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+                            <select id="confirmation-status-filter" name="status" aria-label="Filter by attendance"
+                                class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100 sm:w-48">
+                                <option value="">All status</option>
+                                <option value="attending" @selected(request('status') === 'attending')>Attend</option>
+                                <option value="declined" @selected(request('status') === 'declined')>Not Attend</option>
+                            </select>
+                            <input id="confirmation-search-input" type="search" name="search"
+                                value="{{ $search }}" placeholder="Search badge ID or employee..."
+                                aria-label="Search badge ID or employee" autocomplete="off"
+                                class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100 sm:w-72">
+                            <button type="submit" class="sr-only">Search</button>
+                        </form>
+
+                        <button type="button" id="confirmation-export" data-export-url="{{ url()->current() }}/export"
+                            class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#217346] px-5 text-sm font-medium text-white shadow-lg shadow-emerald-200/60 transition duration-300 hover:-translate-y-0.5 hover:bg-[#1a5c38] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-100 active:scale-[.98]">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true">
+                                <path d="M12 3v12" />
+                                <path d="m7 10 5 5 5-5" />
+                                <path d="M5 21h14" />
+                            </svg>
+                            Export Excel
+                        </button>
+                    </div>
 
                     <div class="-mx-1 overflow-x-auto overscroll-x-contain px-1">
                         <table id="confirmation-table"
@@ -122,8 +141,15 @@
             const input = document.getElementById('confirmation-search-input');
             const pagination = document.getElementById('confirmation-pagination');
             const table = document.getElementById('confirmation-table');
+            const statusFilter = document.getElementById('confirmation-status-filter');
+            const exportButton = document.getElementById('confirmation-export');
             let debounceTimer;
             let activeRequest;
+
+            const status = statusFilter.value;
+
+            if (status) url.searchParams.set('status', status);
+            else url.searchParams.delete('status');
 
             async function loadResults(url, historyMode = 'replace') {
                 activeRequest?.abort();
@@ -188,8 +214,20 @@
                 loadResults(link.href, 'push');
             });
 
+            statusFilter.addEventListener('change', search);
+
+            exportButton.addEventListener('click', () => {
+                const url = new URL(exportButton.dataset.exportUrl, window.location.origin);
+                const query = input.value.trim();
+
+                if (query) url.searchParams.set('search', query);
+                if (statusFilter.value) url.searchParams.set('status', statusFilter.value);
+
+                window.location.href = url.toString();
+            });
+
             window.addEventListener('popstate', () => {
-                input.value = new URLSearchParams(window.location.search).get('search') ?? '';
+                input.value = statusFilter.value = new URLSearchParams(window.location.search).get('status') ?? '';
                 loadResults(window.location.href, 'none');
             });
         });
