@@ -38,24 +38,57 @@
         ['label' => 'CHECKED IN', 'value' => $checkedIn],
     ];
 
-    $panels = [
+    $confirmationPending = max(0, $invited - $confirmed - $declined);
+
+    $charts = [
         [
-            'title' => 'Invitation responses',
+            'title' => 'Confirmation',
             'subtitle' => "Based on {$invited} invited employees",
-            'bars' => [
-                ['label' => 'Confirmed attending', 'percent' => $confirmedRate, 'primary' => true],
-                ['label' => 'Not attending', 'percent' => $declinedRate, 'primary' => false],
+            'total' => $invited,
+            'segments' => [
+                [
+                    'label' => 'Confirmation yes',
+                    'value' => $confirmed,
+                    'percent' => $invited > 0 ? round(($confirmed / $invited) * 100, 1) : 0,
+                    'color' => '#10b981',
+                    'class' => 'bg-emerald-500',
+                ],
+                [
+                    'label' => 'Confirmation no',
+                    'value' => $declined,
+                    'percent' => $invited > 0 ? round(($declined / $invited) * 100, 1) : 0,
+                    'color' => '#f97316',
+                    'class' => 'bg-orange-500',
+                ],
+                [
+                    'label' => 'Pending',
+                    'value' => $confirmationPending,
+                    'percent' => $invited > 0 ? round(($confirmationPending / $invited) * 100, 1) : 0,
+                    'color' => '#64748b',
+                    'class' => 'bg-slate-500',
+                ],
             ],
-            'footer' => [number_format($confirmed) . ' attending', number_format($declined) . ' declined'],
         ],
         [
-            'title' => 'On-site attendance',
+            'title' => 'Attendance',
             'subtitle' => "Based on {$confirmed} confirmed attendees",
-            'bars' => [
-                ['label' => 'Checked in', 'percent' => $checkedRate, 'primary' => true],
-                ['label' => 'Not checked in yet', 'percent' => $notCheckedRate, 'primary' => false],
+            'total' => $confirmed,
+            'segments' => [
+                [
+                    'label' => 'Checked in',
+                    'value' => $checkedIn,
+                    'percent' => $confirmed > 0 ? round(($checkedIn / $confirmed) * 100, 1) : 0,
+                    'color' => '#3563ff',
+                    'class' => 'bg-[#3563ff]',
+                ],
+                [
+                    'label' => 'Not checked in',
+                    'value' => $pending,
+                    'percent' => $confirmed > 0 ? round(($pending / $confirmed) * 100, 1) : 0,
+                    'color' => '#a855f7',
+                    'class' => 'bg-purple-500',
+                ],
             ],
-            'footer' => [number_format($checkedIn) . ' checked in', number_format($pending) . ' pending'],
         ],
     ];
 @endphp
@@ -136,41 +169,87 @@
 
                 <div class="mt-8">
                     <h2 class="text-lg font-semibold tracking-tight sm:text-xl">Attendance overview</h2>
-                    <p class="mt-1 text-xs text-slate-500">Sample figures for the dashboard layout</p>
+                    <p class="mt-1 text-xs text-slate-500">Live confirmation and check-in distribution</p>
                 </div>
 
                 <section class="mt-5 grid gap-4 sm:gap-6 lg:grid-cols-2">
-                    @foreach ($panels as $panel)
+                    @foreach ($charts as $chartIndex => $chart)
                         <article
-                            class="min-w-0 rounded-2xl border border-violet-200/70 bg-white p-5 shadow-lg shadow-violet-100/50 sm:p-6 [animation:rise_.7s_.5s_ease-out_both]">
-                            <h3 class="break-words text-base font-semibold tracking-tight sm:text-lg">
-                                {{ $panel['title'] }}</h3>
-                            <p class="mt-1 text-xs text-slate-500">{{ $panel['subtitle'] }}</p>
-
-                            <div class="mt-5 space-y-5 sm:mt-6">
-                                @foreach ($panel['bars'] as $bar)
-                                    <div>
-                                        <div class="flex items-center justify-between gap-3 text-sm font-medium">
-                                            <span class="min-w-0 truncate">{{ $bar['label'] }}</span>
-                                            <span @class(['shrink-0', 'text-fuchsia-600' => $bar['primary']])>{{ $bar['percent'] }}%</span>
-                                        </div>
-                                        <div class="mt-2 h-3 overflow-hidden rounded-full bg-violet-50">
-                                            <div @class([
-                                                'h-full origin-left rounded-full [animation:grow_1.2s_.6s_ease-out_both]',
-                                                'bg-gradient-to-r from-fuchsia-600 to-violet-700' => $bar['primary'],
-                                                'bg-[#2e1065]' => !$bar['primary'],
-                                            ]) style="width: {{ $bar['percent'] }}%">
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
+                            class="min-w-0 rounded-2xl border border-violet-200/70 bg-white p-5 shadow-lg shadow-violet-100/50 sm:p-6 [animation:rise_.7s_.5s_ease-out_both]"
+                            data-chart-card="{{ $chartIndex }}">
+                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <h3 class="break-words text-base font-semibold tracking-tight sm:text-lg">
+                                        {{ $chart['title'] }}</h3>
+                                    <p class="mt-1 text-xs text-slate-500">{{ $chart['subtitle'] }}</p>
+                                </div>
+                                <span
+                                    class="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-[#7a2cc0]">{{ number_format($chart['total']) }}
+                                    total</span>
                             </div>
 
-                            <div
-                                class="mt-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-slate-500 sm:mt-6">
-                                @foreach ($panel['footer'] as $text)
-                                    <span>{{ $text }}</span>
-                                @endforeach
+                            <div class="mt-6 grid gap-6 md:grid-cols-[minmax(190px,240px),1fr] md:items-center">
+                                <div class="relative mx-auto aspect-square w-full max-w-60">
+                                    <svg viewBox="0 0 120 120" role="img"
+                                        aria-label="{{ $chart['title'] }} pie chart" class="h-full w-full">
+                                        <circle cx="60" cy="60" r="42" fill="none" stroke="#f1f5f9"
+                                            stroke-width="22" />
+                                        @php($offset = 0)
+                                        @foreach ($chart['segments'] as $segmentIndex => $segment)
+                                            @if ($segment['percent'] > 0)
+                                                <circle cx="60" cy="60" r="42" fill="none"
+                                                    stroke="{{ $segment['color'] }}" stroke-width="22"
+                                                    pathLength="100"
+                                                    stroke-dasharray="{{ $segment['percent'] }} {{ 100 - $segment['percent'] }}"
+                                                    stroke-dashoffset="{{ -$offset }}"
+                                                    transform="rotate(-90 60 60)" stroke-linecap="butt"
+                                                    class="cursor-pointer outline-none transition duration-300 hover:opacity-80 focus:opacity-80"
+                                                    tabindex="0" data-chart-segment="{{ $segmentIndex }}" />
+                                            @endif
+                                            @php($offset += $segment['percent'])
+                                        @endforeach
+                                    </svg>
+                                    <div class="pointer-events-none absolute inset-0 grid place-items-center">
+                                        <div class="text-center">
+                                            <p data-chart-percent
+                                                class="text-3xl font-semibold tracking-tight text-[#2e1065]">
+                                                {{ $chart['segments'][0]['percent'] }}%</p>
+                                            <p data-chart-label class="mt-1 text-xs font-medium text-slate-500">
+                                                {{ $chart['segments'][0]['label'] }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-3">
+                                    @foreach ($chart['segments'] as $segmentIndex => $segment)
+                                        <button type="button"
+                                            class="flex w-full items-center justify-between gap-3 rounded-xl border border-violet-100 bg-violet-50/40 px-4 py-3 text-left transition duration-300 hover:border-violet-300 hover:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-fuchsia-100"
+                                            data-chart-segment="{{ $segmentIndex }}">
+                                            <span class="flex min-w-0 items-center gap-3">
+                                                <span @class(['size-3 shrink-0 rounded-full', $segment['class']])></span>
+                                                <span class="min-w-0">
+                                                    <span
+                                                        class="block truncate text-sm font-semibold text-[#2e1065]">{{ $segment['label'] }}</span>
+                                                    <span class="mt-0.5 block text-xs text-slate-500"
+                                                        data-chart-detail="{{ $segmentIndex }}">{{ number_format($segment['value']) }}
+                                                        data</span>
+                                                </span>
+                                            </span>
+                                            <span
+                                                class="shrink-0 text-sm font-semibold text-[#7a2cc0]">{{ $segment['percent'] }}%</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <div class="mt-5 rounded-xl border border-violet-100 bg-white px-4 py-3 text-sm">
+                                <p class="font-semibold text-[#2e1065]" data-chart-active-title>
+                                    {{ $chart['segments'][0]['label'] }}</p>
+                                <p class="mt-1 text-xs text-slate-500" data-chart-active-detail>
+                                    {{ number_format($chart['segments'][0]['value']) }} of
+                                    {{ number_format($chart['total']) }} data,
+                                    {{ $chart['segments'][0]['percent'] }}%
+                                </p>
                             </div>
                         </article>
                     @endforeach
@@ -237,10 +316,9 @@
             </div>
         </form>
     </dialog>
-</body>
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const charts = @json($charts);
         const modal = document.getElementById('checkin-modal');
         const openButton = document.getElementById('checkin-open');
         const form = document.getElementById('checkin-form');
@@ -257,6 +335,44 @@
             year: 'numeric',
             hour: '2-digit',
             minute: '2-digit',
+        });
+        const formatNumber = (value) => new Intl.NumberFormat('en-US').format(value);
+
+        document.querySelectorAll('[data-chart-card]').forEach((card) => {
+            const chart = charts[Number(card.dataset.chartCard)];
+            const percent = card.querySelector('[data-chart-percent]');
+            const label = card.querySelector('[data-chart-label]');
+            const activeTitle = card.querySelector('[data-chart-active-title]');
+            const activeDetail = card.querySelector('[data-chart-active-detail]');
+            const triggers = card.querySelectorAll('[data-chart-segment]');
+
+            const selectSegment = (segmentIndex) => {
+                const segment = chart.segments[segmentIndex];
+
+                percent.textContent = `${segment.percent}%`;
+                label.textContent = segment.label;
+                activeTitle.textContent = segment.label;
+                activeDetail.textContent =
+                    `${formatNumber(segment.value)} of ${formatNumber(chart.total)} data, ${segment.percent}%`;
+
+                triggers.forEach((trigger) => {
+                    const isActive = Number(trigger.dataset.chartSegment) === segmentIndex;
+                    trigger.classList.toggle('ring-4', isActive);
+                    trigger.classList.toggle('ring-fuchsia-100', isActive);
+                    trigger.classList.toggle('border-violet-300', isActive);
+                });
+            };
+
+            triggers.forEach((trigger) => {
+                const segmentIndex = Number(trigger.dataset.chartSegment);
+                trigger.addEventListener('click', () => selectSegment(segmentIndex));
+                trigger.addEventListener('keydown', (event) => {
+                    if (!['Enter', ' '].includes(event.key)) return;
+
+                    event.preventDefault();
+                    selectSegment(segmentIndex);
+                });
+            });
         });
 
         openButton.addEventListener('click', () => {
@@ -289,5 +405,7 @@
         });
     });
 </script>
+
+</body>
 
 </html>
