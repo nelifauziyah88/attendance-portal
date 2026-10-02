@@ -65,8 +65,9 @@
     ];
 
     $sounds = [
-        'suspense' => asset('audio/suspense.mp3'),
-        'clapping' => asset('audio/clapping.mp3'),
+        'intro' => asset('audio/intro.mp3'),
+        'draw' => asset('audio/draw.mp3'),
+        'winner' => asset('audio/winner.mp3'),
     ];
 
     $stars =
@@ -77,8 +78,8 @@
     class="h-screen h-dvh overflow-hidden bg-gradient-to-tr from-[#a0237c] via-[#5a1a85] to-[#2a0b5c] font-normal text-white antialiased [font-family:'Plus_Jakarta_Sans',ui-sans-serif,system-ui,sans-serif]"
     data-display data-draw="{{ $draw }}" data-eligible="{{ $eligible }}"
     data-history="{{ json_encode($recentWinners) }}" data-draw-url="{{ $drawUrl ?? '' }}"
-    data-csrf-token="{{ $csrfToken ?? csrf_token() }}"
-    data-suspense-sound="{{ $sounds['suspense'] }}" data-clapping-sound="{{ $sounds['clapping'] }}">
+    data-csrf-token="{{ $csrfToken ?? csrf_token() }}" data-intro-sound="{{ $sounds['intro'] }}"
+    data-draw-sound="{{ $sounds['draw'] }}" data-winner-sound="{{ $sounds['winner'] }}">
     <div class="{{ $stars }} pointer-events-none absolute inset-0"></div>
 
     <div class="relative flex h-full flex-col p-3 sm:p-6">
@@ -178,7 +179,8 @@
         const MAX_DURATION = 60;
         const LOOPS = 2;
         const FADE_DURATION = 1200;
-        const FADE_STEPS = 20;
+        const FADE_INTERVAL = 50;
+        const INTRO_VOLUME = 0.7;
         const MIN_RATE = 0.5;
         const MAX_RATE = 2;
         const CONFETTI_COLORS = ['#ffffff', '#e9b6ff', '#ff5fd2', '#5ad2ff', '#ffd666'];
@@ -186,17 +188,26 @@
         const participants = JSON.parse(reel.dataset.participants);
         const count = participants.length;
 
-        const suspenseSound = new Audio(root.dataset.suspenseSound);
-        const clappingSound = new Audio(root.dataset.clappingSound);
+        const introSound = new Audio(root.dataset.introSound);
+        const drawSound = new Audio(root.dataset.drawSound);
+        const winnerSound = new Audio(root.dataset.winnerSound);
 
-        suspenseSound.preload = 'auto';
-        clappingSound.preload = 'auto';
+        introSound.preload = 'auto';
+        drawSound.preload = 'auto';
+        winnerSound.preload = 'auto';
+
+        const fades = new Map();
 
         let confettiTimer = null;
-        let fadeTimer = null;
         let unlocked = false;
 
+        const clearFade = (audio) => {
+            clearInterval(fades.get(audio));
+            fades.delete(audio);
+        };
+
         const stopSound = (audio) => {
+            clearFade(audio);
             audio.pause();
             audio.currentTime = 0;
             audio.volume = 1;
@@ -204,50 +215,72 @@
             audio.loop = false;
         };
 
-        const stopAllSounds = () => {
-            clearInterval(fadeTimer);
-            fadeTimer = null;
-            stopSound(suspenseSound);
-            stopSound(clappingSound);
-        };
+        const fadeTo = (audio, target, duration, done) => {
+            clearFade(audio);
 
-        const playClapping = () => {
-            clappingSound.currentTime = 0;
-            clappingSound.volume = 1;
-            clappingSound.play().catch(() => {});
-        };
+            const from = audio.volume;
+            const steps = Math.max(1, Math.round(duration / FADE_INTERVAL));
+            let current = 0;
 
-        const playSuspense = (seconds) => {
-            const length = suspenseSound.duration;
-            const ideal = Number.isFinite(length) && length > 0 ? length / seconds : 1;
-            const rate = Math.min(MAX_RATE, Math.max(MIN_RATE, ideal));
+            const timer = setInterval(() => {
+                current += 1;
+                audio.volume = Math.min(1, Math.max(0, from + (target - from) * (current / steps)));
 
-            suspenseSound.currentTime = 0;
-            suspenseSound.volume = 1;
-            suspenseSound.playbackRate = rate;
-            suspenseSound.loop = rate !== ideal;
-            suspenseSound.play().catch(() => {});
+                if (current >= steps) {
+                    clearFade(audio);
+                    done?.();
+                }
+            }, FADE_INTERVAL);
+
+            fades.set(audio, timer);
         };
 
         const fadeOut = (audio) => {
-            clearInterval(fadeTimer);
-
             if (audio.paused) {
                 stopSound(audio);
                 return;
             }
 
-            const step = audio.volume / FADE_STEPS;
+            fadeTo(audio, 0, FADE_DURATION, () => stopSound(audio));
+        };
 
-            fadeTimer = setInterval(() => {
-                audio.volume = Math.max(0, audio.volume - step);
+        const startIntro = () => {
+            if (!unlocked || state.spinning) return;
 
-                if (audio.volume <= 0.01) {
-                    clearInterval(fadeTimer);
-                    fadeTimer = null;
-                    stopSound(audio);
-                }
-            }, FADE_DURATION / FADE_STEPS);
+            introSound.loop = true;
+
+            if (!introSound.paused) {
+                fadeTo(introSound, INTRO_VOLUME, FADE_DURATION);
+                return;
+            }
+
+            introSound.currentTime = 0;
+            introSound.volume = 0;
+            introSound.play().catch(() => {});
+            fadeTo(introSound, INTRO_VOLUME, FADE_DURATION);
+        };
+
+        const playDraw = (seconds) => {
+            const length = drawSound.duration;
+            const ideal = Number.isFinite(length) && length > 0 ? length / seconds : 1;
+            const rate = Math.min(MAX_RATE, Math.max(MIN_RATE, ideal));
+
+            drawSound.currentTime = 0;
+            drawSound.volume = 1;
+            drawSound.playbackRate = rate;
+            drawSound.loop = rate !== ideal;
+            drawSound.play().catch(() => {});
+        };
+
+        const playWinner = () => {
+            winnerSound.currentTime = 0;
+            winnerSound.volume = 1;
+            winnerSound.play().catch(() => startIntro());
+        };
+
+        const stopWinner = () => {
+            stopSound(winnerSound);
+            startIntro();
         };
 
         const primeSounds = (audios) => audios.forEach((audio) => {
@@ -270,7 +303,9 @@
             const isSpin = event.target.closest?.('[data-spin]') ||
                 (event.type === 'keydown' && (event.code === 'Space' || event.code === 'Enter'));
 
-            primeSounds(isSpin ? [clappingSound] : [suspenseSound, clappingSound]);
+            primeSounds(isSpin ? [winnerSound] : [drawSound, winnerSound]);
+
+            if (!isSpin) startIntro();
         };
 
         const fire = (options) => window.confetti?.({
@@ -425,8 +460,10 @@
             moveTo(data.slot);
             startConfetti();
 
-            stopAllSounds();
-            playSuspense(data.duration);
+            stopSound(winnerSound);
+            stopSound(drawSound);
+            fadeOut(introSound);
+            playDraw(data.duration);
 
             save();
         };
@@ -481,7 +518,11 @@
         };
 
         const reveal = () => {
-            const { winner, draw, stats } = state.current;
+            const {
+                winner,
+                draw,
+                stats
+            } = state.current;
 
             const entry = {
                 draw,
@@ -502,8 +543,8 @@
             setSpinning(false);
             toggleOverlay(true);
             stopConfetti();
-            fadeOut(suspenseSound);
-            playClapping();
+            fadeOut(drawSound);
+            playWinner();
             celebrate();
             save();
         };
@@ -516,7 +557,7 @@
             state.eligible = stats?.eligible ?? state.eligible + 1;
 
             toggleOverlay(false);
-            stopSound(clappingSound);
+            stopWinner();
             renderHistory();
             save();
         };
@@ -540,6 +581,7 @@
         });
 
         document.addEventListener('pointerdown', unlockAudio, true);
+        winnerSound.addEventListener('ended', () => startIntro());
         document.addEventListener('keydown', unlockAudio, true);
 
         triggers.forEach((trigger) => trigger.addEventListener('click', spin));
@@ -557,7 +599,7 @@
 
         overlay.addEventListener('click', () => {
             toggleOverlay(false);
-            stopSound(clappingSound);
+            stopWinner();
         });
     </script>
 </body>
