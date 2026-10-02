@@ -46,6 +46,15 @@
                 <section
                     class="mt-6 min-w-0 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-lg shadow-blue-100/50 sm:mt-8 sm:p-6 [animation:rise_.7s_.1s_ease-out_both]">
                     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                        <select id="confirmation-department-filter" name="department"
+                            aria-label="Filter by department"
+                            class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100 sm:w-52">
+                            <option value="">All departments</option>
+                            @foreach ($departments ?? [] as $department)
+                                <option value="{{ $department }}" @selected(request('department') === $department)>{{ $department }}
+                                </option>
+                            @endforeach
+                        </select>
                         <form id="attendance-search-form" method="GET" action="{{ url()->current() }}"
                             class="w-full sm:max-w-sm">
                             <input id="attendance-search-input" type="search" name="search" value="{{ $search }}"
@@ -122,6 +131,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('attendance-search-form');
             const input = document.getElementById('attendance-search-input');
+            const departmentFilter = document.getElementById('confirmation-department-filter');
             const pagination = document.getElementById('attendance-pagination');
             const table = document.getElementById('attendance-table');
             const exportButton = document.getElementById('attendance-export');
@@ -167,6 +177,10 @@
 
                 if (query) url.searchParams.set('search', query);
                 else url.searchParams.delete('search');
+
+                const department = departmentFilter.value;
+                if (department) url.searchParams.set('department', department);
+                else url.searchParams.delete('department');
             }
 
             function search() {
@@ -187,6 +201,8 @@
                 window.clearTimeout(debounceTimer);
                 debounceTimer = window.setTimeout(search, 300);
             });
+
+            departmentFilter.addEventListener('change', search);
 
             pagination.addEventListener('click', event => {
                 const link = event.target.closest('a[href]');
@@ -358,6 +374,7 @@
 
             window.addEventListener('popstate', () => {
                 input.value = new URLSearchParams(window.location.search).get('search') ?? '';
+                departmentFilter.addEventListener('change', search);
                 loadResults(window.location.href, 'none');
             });
         });

@@ -239,6 +239,13 @@ class AdminController extends Controller
         }
 
         $search = $request->query('search');
+        $department = $request->query('department');
+        $departments = MasterAttendance::query()
+            ->whereNotNull('department')
+            ->whereRaw("TRIM(department) <> ''")
+            ->groupBy('department')
+            ->orderBy('department')
+            ->pluck('department');
 
         $attendances = Attendance::query()
             ->when($search, fn ($query) => $query->where('badge_id', 'ilike', "%{$search}%"))
@@ -261,7 +268,7 @@ class AdminController extends Controller
             ];
         });
 
-        return view('admin.attendance.index', compact('attendances', 'search'));
+        return view('admin.attendance.index', compact('attendances', 'search', 'department', 'departments'));
     }
 
     public function prizes()
