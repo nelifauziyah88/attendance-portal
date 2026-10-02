@@ -65,6 +65,17 @@
                                 class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100">
                             <button type="submit" class="sr-only">Search</button>
                         </form>
+
+                        <button type="button" id="employee-export"
+                            class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#217346] px-5 text-sm font-medium text-white shadow-lg shadow-emerald-200/60 transition duration-300 hover:-translate-y-0.5 hover:bg-[#1a5c38] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-100 active:scale-[.98]">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true">
+                                <path d="M12 3v12" />
+                                <path d="m7 10 5 5 5-5" />
+                                <path d="M5 21h14" />
+                            </svg>
+                            Export Excel
+                        </button>
                     </div>
 
                     <div class="-mx-1 overflow-x-auto overscroll-x-contain px-1">
@@ -165,6 +176,7 @@
             const departmentFilter = document.getElementById('confirmation-department-filter');
             const pagination = document.getElementById('employee-pagination');
             const table = document.getElementById('employee-table');
+            const exportButton = document.getElementById('employee-export');
             let debounceTimer;
             let activeRequest;
 
@@ -202,10 +214,8 @@
                 }
             }
 
-            function search() {
-                const url = new URL(window.location.href);
+            function syncFilterParams(url) {
                 const query = input.value.trim();
-                url.searchParams.delete('page');
 
                 if (query) url.searchParams.set('search', query);
                 else url.searchParams.delete('search');
@@ -213,6 +223,13 @@
                 const department = departmentFilter.value;
                 if (department) url.searchParams.set('department', department);
                 else url.searchParams.delete('department');
+            }
+
+            function search() {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('page');
+
+                syncFilterParams(url);
 
                 loadResults(url.toString());
             }
@@ -315,6 +332,169 @@
 
             document.addEventListener('keydown', event => {
                 if (event.key === 'Escape') setInfo(false);
+            });
+
+            const EXPORT_MAX_PAGES = 500;
+            const headers = [...table.tHead.rows[0].cells]
+                .slice(0, -1)
+                .map((cell) => cell.textContent.trim());
+
+            function buildExportUrl(page) {
+                const url = new URL(window.location.href);
+                url.search = '';
+
+                syncFilterParams(url);
+                url.searchParams.set('page', page);
+
+                return url.toString();
+            }
+
+            async function collectRows() {
+                const rows = [];
+                let previousKey = '';
+
+                for (let page = 1; page <= EXPORT_MAX_PAGES; page++) {
+                    const response = await fetch(buildExportUrl(page), {
+                        headers: {
+                            'Accept': 'text/html',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                    });
+
+                    if (!response.ok) throw new Error('Unable to load data for export.');
+
+                    const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+                    const pageRows = [...doc.querySelectorAll('#employee-table tbody tr')]
+                        .filter((row) => row.cells.length > headers.length)
+                        .map((row) => [...row.cells]
+                            .slice(0, headers.length)
+                            .map((cell) => cell.textContent.trim().replace(/\s+/g, ' ')));
+
+                    if (!pageRows.length) break;
+
+                    const key = pageRows[0].join('|');
+                    if (key === previousKey) break;
+                    previousKey = key;
+
+                    rows.push(...pageRows);
+                }
+
+                return rows;
+            }
+
+            function columnWidth(value) {
+                return Math.min(Math.max(String(value).length + 3, 10), 45);
+            }
+
+            async function buildWorkbook(rows) {
+                if (!window.ExcelJS) {
+                    throw new Error('ExcelJS is not loaded.');
+                }
+
+                const workbook = new window.ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('Information List');
+                const sheetRows = [headers, ...rows.map((row, index) => [
+                    String(index + 1).padStart(2, '0'),
+                    ...row.slice(1),
+                ])];
+
+                worksheet.addRows(sheetRows);
+
+                worksheet.columns = headers.map((_, columnIndex) => ({
+                    width: sheetRows.reduce((maxWidth, row) => {
+                        return Math.max(maxWidth, columnWidth(row[columnIndex] ?? ''));
+                    }, 10),
+                }));
+
+                worksheet.getRow(1).eachCell((cell) => {
+                    cell.font = {
+                        bold: true,
+                        color: {
+                            argb: 'FFFFFFFF'
+                        },
+                    };
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: {
+                            argb: 'FF7A2CC0'
+                        },
+                    };
+                });
+
+                worksheet.eachRow((row) => {
+                    row.eachCell((cell) => {
+                        cell.numFmt = '@';
+                        cell.border = {
+                            top: {
+                                style: 'thin',
+                                color: {
+                                    argb: 'FFB7B7B7'
+                                },
+                            },
+                            left: {
+                                style: 'thin',
+                                color: {
+                                    argb: 'FFB7B7B7'
+                                },
+                            },
+                            bottom: {
+                                style: 'thin',
+                                color: {
+                                    argb: 'FFB7B7B7'
+                                },
+                            },
+                            right: {
+                                style: 'thin',
+                                color: {
+                                    argb: 'FFB7B7B7'
+                                },
+                            },
+                        };
+                    });
+                });
+
+                const buffer = await workbook.xlsx.writeBuffer();
+
+                return new Blob([buffer], {
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                });
+            }
+
+            function downloadFile(blob, filename) {
+                const href = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+
+                anchor.href = href;
+                anchor.download = filename;
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+
+                window.setTimeout(() => URL.revokeObjectURL(href), 1000);
+            }
+
+            exportButton.addEventListener('click', async () => {
+                exportButton.disabled = true;
+                exportButton.classList.add('opacity-60', 'pointer-events-none');
+
+                try {
+                    const rows = await collectRows();
+
+                    if (!rows.length) {
+                        window.alert('No data to export.');
+                        return;
+                    }
+
+                    const date = new Date().toISOString().slice(0, 10);
+                    downloadFile(await buildWorkbook(rows), `information-list-${date}.xlsx`);
+                } catch (error) {
+                    console.error(error);
+                    window.alert(`Unable to export the data: ${error.message}`);
+                } finally {
+                    exportButton.disabled = false;
+                    exportButton.classList.remove('opacity-60', 'pointer-events-none');
+                }
             });
 
             window.addEventListener('popstate', () => {
