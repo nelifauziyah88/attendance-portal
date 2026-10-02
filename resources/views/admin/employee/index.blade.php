@@ -49,22 +49,22 @@
                     class="mt-6 min-w-0 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-lg shadow-blue-100/50 sm:mt-8 sm:p-6 [animation:rise_.7s_.1s_ease-out_both]">
                     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
                         <select id="confirmation-department-filter" name="department"
-                                aria-label="Filter by department"
-                                class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100 sm:w-52">
-                                <option value="">All departments</option>
-                                @foreach ($departments ?? [] as $department)
-                                    <option value="{{ $department }}" @selected(request('department') === $department)>{{ $department }}
-                                    </option>
-                                @endforeach
-                            </select>
-                    <form id="employee-search-form" method="GET" action="{{ url()->current() }}"
-                        class="mb-4 w-full sm:ml-auto sm:max-w-sm">
-                        <input id="employee-search-input" type="search" name="search" value="{{ $search }}"
-                            placeholder="Search badge ID or employee..." aria-label="Search badge ID or employee"
-                            autocomplete="off"
-                            class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100">
-                        <button type="submit" class="sr-only">Search</button>
-                    </form>
+                            aria-label="Filter by department"
+                            class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100 sm:w-52">
+                            <option value="">All departments</option>
+                            @foreach ($departments ?? [] as $department)
+                                <option value="{{ $department }}" @selected(request('department') === $department)>{{ $department }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <form id="employee-search-form" method="GET" action="{{ url()->current() }}"
+                            class="w-full sm:max-w-sm">
+                            <input id="employee-search-input" type="search" name="search" value="{{ $search }}"
+                                placeholder="Search badge ID or employee..." aria-label="Search badge ID or employee"
+                                autocomplete="off"
+                                class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100">
+                            <button type="submit" class="sr-only">Search</button>
+                        </form>
                     </div>
 
                     <div class="-mx-1 overflow-x-auto overscroll-x-contain px-1">
@@ -96,7 +96,8 @@
                                                         class="absolute right-0 top-full z-20 mt-3 w-56 whitespace-normal rounded-2xl rounded-tr-sm bg-[#582764] px-4 py-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-white shadow-xl shadow-blue-200/60">
                                                         <span
                                                             class="absolute -top-1 right-2 size-3 rotate-45 bg-[#582764]"></span>
-                                                        <p class="relative">Tindakan ini digunakan untuk menandai karyawan jika mereka adalah seorang manager.</p>
+                                                        <p class="relative">Tindakan ini digunakan untuk menandai
+                                                            karyawan jika mereka adalah seorang manager.</p>
                                                     </div>
                                                 </span>
                                             @else
@@ -245,11 +246,12 @@
                 const confirmation = await window.Swal.fire({
                     icon: 'question',
                     title: isManager ? 'Mark as manager?' : 'Remove manager status?',
-                    text: isManager
-                        ? `Are you sure you want to mark ${employeeName} as a manager?`
-                        : `Are you sure you want to remove manager status from ${employeeName}?`,
+                    text: isManager ?
+                        `Are you sure you want to mark ${employeeName} as a manager?` :
+                        `Are you sure you want to remove manager status from ${employeeName}?`,
                     showCancelButton: true,
-                    confirmButtonText: isManager ? 'Yes, mark as manager' : 'Yes, remove status',
+                    confirmButtonText: isManager ? 'Yes, mark as manager' :
+                        'Yes, remove status',
                     cancelButtonText: 'Cancel',
                     confirmButtonColor: '#3563ff',
                     cancelButtonColor: '#64748b',
@@ -268,7 +270,9 @@
                             'X-CSRF-TOKEN': button.dataset.csrfToken,
                             'X-Requested-With': 'XMLHttpRequest',
                         },
-                        body: JSON.stringify({ is_manager: isManager }),
+                        body: JSON.stringify({
+                            is_manager: isManager
+                        }),
                     });
                     const result = await response.json();
 
