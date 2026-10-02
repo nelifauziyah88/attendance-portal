@@ -249,6 +249,9 @@ class AdminController extends Controller
 
         $attendances = Attendance::query()
             ->when($search, fn ($query) => $query->where('badge_id', 'ilike', "%{$search}%"))
+            ->when($department, fn ($query, $department) => $query->whereHas('user', function ($query) use ($department) {
+                $query->where('department', $department);
+            }))
             ->latest('check_in_at')
             ->paginate(15)
             ->withQueryString();
