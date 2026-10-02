@@ -33,9 +33,9 @@
 </head>
 @php
     $stats = [
-        ['label' => 'INVITED EMPLOYEES', 'value' => $invited, 'note' => 'Total invitations sent'],
-        ['label' => 'CONFIRMED ATTENDING', 'value' => $confirmed, 'note' => $confirmedRate . '% of invited'],
-        ['label' => 'CHECKED IN', 'value' => $checkedIn, 'note' => $checkedRate . '% of confirmed'],
+        ['label' => 'INVITED EMPLOYEES', 'value' => $invited],
+        ['label' => 'CONFIRMED ATTENDING', 'value' => $confirmed],
+        ['label' => 'CHECKED IN', 'value' => $checkedIn],
     ];
 
     $panels = [
@@ -80,6 +80,38 @@
                     </div>
                 </div>
 
+                <button type="button" id="checkin-open" aria-haspopup="dialog"
+                    class="mt-6 flex w-full items-center justify-between gap-4 rounded-2xl border border-violet-200/70 bg-white p-5 text-left shadow-lg shadow-violet-100/50 transition duration-300 hover:shadow-xl hover:shadow-fuchsia-200/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-fuchsia-100 active:scale-[.99] sm:p-6 [animation:rise_.7s_.05s_ease-out_both]">
+                    <span class="flex min-w-0 items-center gap-4">
+                        <span
+                            class="grid size-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-fuchsia-600 to-violet-700 text-white shadow-md shadow-fuchsia-200/60">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" class="size-6" aria-hidden="true">
+                                <rect x="3" y="4" width="18" height="17" rx="2" />
+                                <path d="M16 2v4" />
+                                <path d="M8 2v4" />
+                                <path d="M3 10h18" />
+                                <path d="M12 13v3l2 1" />
+                            </svg>
+                        </span>
+                        <span class="min-w-0">
+                            <span class="block text-[10px] font-semibold tracking-widest text-slate-500">SET CHECK-IN
+                                SCHEDULE</span>
+                            <span id="checkin-summary"
+                                class="mt-1 block truncate text-sm font-semibold text-[#2e1065] sm:text-base">Not set
+                                yet</span>
+                        </span>
+                    </span>
+                    <span
+                        class="hidden shrink-0 items-center gap-1.5 rounded-xl border-2 border-violet-200 px-4 py-2 text-xs font-medium text-[#7a2cc0] sm:inline-flex">
+                        Set schedule
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true">
+                            <path d="m9 6 6 6-6 6" />
+                        </svg>
+                    </span>
+                </button>
+
                 <section
                     class="relative mt-6 overflow-hidden rounded-2xl bg-gradient-to-r from-[#a3248f] via-[#5b1b7a] to-[#2e1065] px-5 py-6 text-white shadow-xl shadow-fuchsia-200/60 sm:px-8 sm:py-7 [animation:rise_.7s_.1s_ease-out_both]">
                     <p class="text-[11px] font-medium tracking-widest text-cyan-200">LIVE EVENT SUMMARY</p>
@@ -98,7 +130,6 @@
                             <p class="text-[10px] font-semibold tracking-widest text-slate-500">{{ $stat['label'] }}</p>
                             <p class="mt-2 text-4xl font-semibold tracking-tight sm:text-5xl">
                                 {{ number_format($stat['value']) }}</p>
-                            <p class="mt-2 text-sm text-slate-500">{{ $stat['note'] }}</p>
                         </article>
                     @endforeach
                 </section>
@@ -149,6 +180,114 @@
             </main>
         </div>
     </div>
+
+    <dialog id="checkin-modal" aria-labelledby="checkin-title"
+        class="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-violet-200/70 bg-white p-0 text-[#2e1065] shadow-2xl shadow-fuchsia-200/60 backdrop:bg-[#1a0640]/60 backdrop:backdrop-blur-sm">
+        <form id="checkin-form" class="p-5 sm:p-6">
+            <div class="flex items-start justify-between gap-4">
+                <div class="min-w-0">
+                    <h2 id="checkin-title" class="text-lg font-semibold tracking-tight sm:text-xl">Set schedule
+                    </h2>
+                    <p class="mt-1 text-xs text-slate-500">Set when check-in opens and closes.</p>
+                </div>
+                <button type="button" data-checkin-close aria-label="Close"
+                    class="grid size-8 shrink-0 place-items-center rounded-lg text-slate-400 transition duration-300 hover:bg-violet-50 hover:text-[#2e1065]">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true">
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mt-5 space-y-5">
+                @foreach ([['key' => 'start', 'label' => 'CHECK-IN START'], ['key' => 'end', 'label' => 'CHECK-IN END']] as $field)
+                    <fieldset>
+                        <legend class="text-[10px] font-semibold tracking-widest text-slate-500">{{ $field['label'] }}
+                        </legend>
+                        <div class="mt-2 grid gap-3 sm:grid-cols-2">
+                            <label class="block">
+                                <span class="text-xs font-medium text-slate-500">Date</span>
+                                <input type="date" id="checkin-{{ $field['key'] }}-date"
+                                    name="{{ $field['key'] }}_date" required
+                                    class="mt-1 h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100">
+                            </label>
+                            <label class="block">
+                                <span class="text-xs font-medium text-slate-500">Time</span>
+                                <input type="time" id="checkin-{{ $field['key'] }}-time"
+                                    name="{{ $field['key'] }}_time" required
+                                    class="mt-1 h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100">
+                            </label>
+                        </div>
+                    </fieldset>
+                @endforeach
+            </div>
+
+            <p id="checkin-error" role="alert" class="mt-4 hidden text-xs font-medium text-red-600"></p>
+
+            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" data-checkin-close
+                    class="flex h-11 items-center justify-center rounded-xl border-2 border-violet-200 bg-white px-6 text-sm font-medium text-[#7a2cc0] transition duration-300 hover:border-[#7a2cc0] active:scale-[.98]">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="flex h-11 items-center justify-center rounded-xl bg-gradient-to-r from-[#c02a9c] to-[#6a2fe0] px-8 text-sm font-medium text-white shadow-lg shadow-fuchsia-400/40 transition duration-300 hover:-translate-y-0.5 hover:brightness-110 active:scale-[.98]">
+                    Confirm
+                </button>
+            </div>
+        </form>
+    </dialog>
 </body>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('checkin-modal');
+        const openButton = document.getElementById('checkin-open');
+        const form = document.getElementById('checkin-form');
+        const summary = document.getElementById('checkin-summary');
+        const error = document.getElementById('checkin-error');
+        const startDate = document.getElementById('checkin-start-date');
+        const startTime = document.getElementById('checkin-start-time');
+        const endDate = document.getElementById('checkin-end-date');
+        const endTime = document.getElementById('checkin-end-time');
+
+        const formatDateTime = (value) => value.toLocaleString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+
+        openButton.addEventListener('click', () => {
+            error.classList.add('hidden');
+            modal.showModal();
+        });
+
+        modal.querySelectorAll('[data-checkin-close]').forEach((button) => {
+            button.addEventListener('click', () => modal.close());
+        });
+
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) modal.close();
+        });
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const start = new Date(`${startDate.value}T${startTime.value}`);
+            const end = new Date(`${endDate.value}T${endTime.value}`);
+
+            if (end <= start) {
+                error.textContent = 'Check-in end must be after check-in start.';
+                error.classList.remove('hidden');
+                return;
+            }
+
+            summary.textContent = `${formatDateTime(start)} to ${formatDateTime(end)}`;
+            modal.close();
+        });
+    });
+</script>
 
 </html>

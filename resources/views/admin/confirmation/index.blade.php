@@ -62,6 +62,15 @@
                                 <option value="attending" @selected(request('status') === 'attending')>Attend</option>
                                 <option value="declined" @selected(request('status') === 'declined')>Not Attend</option>
                             </select>
+                            <select id="confirmation-department-filter" name="department"
+                                aria-label="Filter by department"
+                                class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100 sm:w-52">
+                                <option value="">All departments</option>
+                                @foreach ($departments ?? [] as $department)
+                                    <option value="{{ $department }}" @selected(request('department') === $department)>{{ $department }}
+                                    </option>
+                                @endforeach
+                            </select>
                             <input id="confirmation-search-input" type="search" name="search"
                                 value="{{ $search }}" placeholder="Search badge ID or employee..."
                                 aria-label="Search badge ID or employee" autocomplete="off"
@@ -69,7 +78,7 @@
                             <button type="submit" class="sr-only">Search</button>
                         </form>
 
-                        <button type="button" id="confirmation-export" data-export-url="{{ url()->current() }}/export"
+                        <button type="button" id="confirmation-export"
                             class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#217346] px-5 text-sm font-medium text-white shadow-lg shadow-emerald-200/60 transition duration-300 hover:-translate-y-0.5 hover:bg-[#1a5c38] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-100 active:scale-[.98]">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                 stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true">
@@ -142,14 +151,10 @@
             const pagination = document.getElementById('confirmation-pagination');
             const table = document.getElementById('confirmation-table');
             const statusFilter = document.getElementById('confirmation-status-filter');
+            const departmentFilter = document.getElementById('confirmation-department-filter');
             const exportButton = document.getElementById('confirmation-export');
             let debounceTimer;
             let activeRequest;
-
-            const status = statusFilter.value;
-
-            if (status) url.searchParams.set('status', status);
-            else url.searchParams.delete('status');
 
             async function loadResults(url, historyMode = 'replace') {
                 activeRequest?.abort();
@@ -185,13 +190,26 @@
                 }
             }
 
-            function search() {
-                const url = new URL(window.location.href);
+            function syncFilterParams(url) {
                 const query = input.value.trim();
-                url.searchParams.delete('page');
+                const status = statusFilter.value;
+                const department = departmentFilter.value;
 
                 if (query) url.searchParams.set('search', query);
                 else url.searchParams.delete('search');
+
+                if (status) url.searchParams.set('status', status);
+                else url.searchParams.delete('status');
+
+                if (department) url.searchParams.set('department', department);
+                else url.searchParams.delete('department');
+            }
+
+            function search() {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('page');
+
+                syncFilterParams(url);
 
                 loadResults(url.toString());
             }
@@ -216,18 +234,125 @@
 
             statusFilter.addEventListener('change', search);
 
-            exportButton.addEventListener('click', () => {
-                const url = new URL(exportButton.dataset.exportUrl, window.location.origin);
-                const query = input.value.trim();
+            departmentFilter.addEventListener('change', search);
 
-                if (query) url.searchParams.set('search', query);
-                if (statusFilter.value) url.searchParams.set('status', statusFilter.value);
+            const EXPORT_MAX_PAGES = 500;
+            const headers = [...table.tHead.rows[0].cells].map((cell) => cell.textContent.trim());
 
-                window.location.href = url.toString();
+            function buildExportUrl(page) {
+                const url = new URL(window.location.href);
+                url.search = '';
+
+                syncFilterParams(url);
+                url.searchParams.set('page', page);
+
+                return url.toString();
+            }
+
+            async function collectRows() {
+                const rows = [];
+                let previousKey = '';
+
+                for (let page = 1; page <= EXPORT_MAX_PAGES; page++) {
+                    const response = await fetch(buildExportUrl(page), {
+                        headers: {
+                            'Accept': 'text/html',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                    });
+
+                    if (!response.ok) throw new Error('Unable to load data for export.');
+
+                    const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+                    const pageRows = [...doc.querySelectorAll('#confirmation-table tbody tr')]
+                        .filter((row) => row.cells.length === headers.length)
+                        .map((row) => [...row.cells].map((cell) => cell.textContent.trim().replace(/\s+/g,
+                            ' ')));
+
+                    if (!pageRows.length) break;
+
+                    const key = pageRows[0].join('|');
+                    if (key === previousKey) break;
+                    previousKey = key;
+
+                    rows.push(...pageRows);
+                }
+
+                return rows;
+            }
+
+            function escapeHtml(value) {
+                return value
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            function buildWorkbook(rows) {
+                const head = headers
+                    .map((label) => `<th style="background:#ede9fe;font-weight:bold">${escapeHtml(label)}</th>`)
+                    .join('');
+
+                const body = rows
+                    .map((row, index) => {
+                        const cells = [String(index + 1).padStart(2, '0'), ...row.slice(1)];
+                        const html = cells
+                            .map((cell) => `<td style="mso-number-format:'\\@'">${escapeHtml(cell)}</td>`)
+                            .join('');
+
+                        return `<tr>${html}</tr>`;
+                    })
+                    .join('');
+
+                return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table border="1"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></body></html>`;
+            }
+
+            function downloadFile(content, filename) {
+                const blob = new Blob(['\ufeff', content], {
+                    type: 'application/vnd.ms-excel;charset=utf-8'
+                });
+                const href = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+
+                anchor.href = href;
+                anchor.download = filename;
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+
+                window.setTimeout(() => URL.revokeObjectURL(href), 1000);
+            }
+
+            exportButton.addEventListener('click', async () => {
+                console.log('export clicked');
+                exportButton.disabled = true;
+                exportButton.classList.add('opacity-60', 'pointer-events-none');
+
+                try {
+                    const rows = await collectRows();
+
+                    if (!rows.length) {
+                        window.alert('No data to export.');
+                        return;
+                    }
+
+                    const date = new Date().toISOString().slice(0, 10);
+                    downloadFile(buildWorkbook(rows), `confirmation-attendance-${date}.xls`);
+                } catch (error) {
+                    console.error(error);
+                    window.alert(`Unable to export the data: ${error.message}`);
+                } finally {
+                    exportButton.disabled = false;
+                    exportButton.classList.remove('opacity-60', 'pointer-events-none');
+                }
             });
 
             window.addEventListener('popstate', () => {
-                input.value = statusFilter.value = new URLSearchParams(window.location.search).get('status') ?? '';
+                const params = new URLSearchParams(window.location.search);
+                input.value = params.get('search') ?? '';
+                statusFilter.value = params.get('status') ?? '';
+                departmentFilter.value = params.get('department') ?? '';
                 loadResults(window.location.href, 'none');
             });
         });
