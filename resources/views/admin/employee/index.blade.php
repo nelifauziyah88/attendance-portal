@@ -47,6 +47,16 @@
 
                 <section
                     class="mt-6 min-w-0 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-lg shadow-blue-100/50 sm:mt-8 sm:p-6 [animation:rise_.7s_.1s_ease-out_both]">
+                    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                        <select id="confirmation-department-filter" name="department"
+                                aria-label="Filter by department"
+                                class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100 sm:w-52">
+                                <option value="">All departments</option>
+                                @foreach ($departments ?? [] as $department)
+                                    <option value="{{ $department }}" @selected(request('department') === $department)>{{ $department }}
+                                    </option>
+                                @endforeach
+                            </select>
                     <form id="employee-search-form" method="GET" action="{{ url()->current() }}"
                         class="mb-4 w-full sm:ml-auto sm:max-w-sm">
                         <input id="employee-search-input" type="search" name="search" value="{{ $search }}"
@@ -55,6 +65,7 @@
                             class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100">
                         <button type="submit" class="sr-only">Search</button>
                     </form>
+                    </div>
 
                     <div class="-mx-1 overflow-x-auto overscroll-x-contain px-1">
                         <table id="employee-table"
@@ -114,10 +125,14 @@
                                         <td class="border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">
                                             {{ $employee['department'] }}</td>
                                         <td class="border-b border-slate-100 px-3 py-4 sm:px-5 sm:py-8">
-                                            <button type="button" data-check data-badge="{{ $employee['badge'] }}"
-                                                aria-pressed="false"
-                                                aria-label="Mark {{ $employee['name'] }} as checked"
-                                                title="Mark as checked"
+                                            <button type="button" data-manager data-badge="{{ $employee['badge'] }}"
+                                                data-manager-url="{{ route('admin.employee.manager.update', ['badge' => $employee['badge']]) }}"
+                                                data-employee-name="{{ $employee['name'] }}"
+                                                data-manager-state="{{ $employee['is_manager'] ? '1' : '0' }}"
+                                                data-csrf-token="{{ csrf_token() }}"
+                                                aria-pressed="{{ $employee['is_manager'] ? 'true' : 'false' }}"
+                                                aria-label="{{ $employee['is_manager'] ? 'Remove manager status from' : 'Mark as manager' }} {{ $employee['name'] }}"
+                                                title="{{ $employee['is_manager'] ? 'Remove manager status' : 'Mark as manager' }}"
                                                 class="grid size-9 place-items-center rounded-lg border-2 border-slate-200 bg-white text-transparent transition duration-300 hover:border-[#3563ff] hover:text-slate-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 active:scale-95 aria-pressed:border-emerald-500 aria-pressed:bg-emerald-500 aria-pressed:text-white">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                                     stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
@@ -146,19 +161,12 @@
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('employee-search-form');
             const input = document.getElementById('employee-search-input');
+            const departmentFilter = document.getElementById('confirmation-department-filter');
             const pagination = document.getElementById('employee-pagination');
             const table = document.getElementById('employee-table');
-            const checked = new Set();
             let debounceTimer;
             let activeRequest;
 
-            function applyChecks() {
-                table.querySelectorAll('[data-check]').forEach(button => {
-                    const isChecked = checked.has(button.dataset.badge);
-                    button.setAttribute('aria-pressed', isChecked ? 'true' : 'false');
-                    button.title = isChecked ? 'Mark as unchecked' : 'Mark as checked';
-                });
-            }
             async function loadResults(url, historyMode = 'replace') {
                 activeRequest?.abort();
                 activeRequest = new AbortController();
@@ -184,8 +192,6 @@
                     table.tBodies[0].replaceWith(nextBody);
                     pagination.innerHTML = nextPagination?.innerHTML ?? '';
 
-                    applyChecks();
-
                     if (historyMode === 'push') history.pushState({}, '', url);
                     else if (historyMode === 'replace') history.replaceState({}, '', url);
                 } catch (error) {
@@ -203,6 +209,10 @@
                 if (query) url.searchParams.set('search', query);
                 else url.searchParams.delete('search');
 
+                const department = departmentFilter.value;
+                if (department) url.searchParams.set('department', department);
+                else url.searchParams.delete('department');
+
                 loadResults(url.toString());
             }
 
@@ -216,6 +226,8 @@
                 debounceTimer = window.setTimeout(search, 300);
             });
 
+            departmentFilter.addEventListener('change', search);
+
             pagination.addEventListener('click', event => {
                 const link = event.target.closest('a[href]');
                 if (!link) return;
@@ -224,16 +236,60 @@
                 loadResults(link.href, 'push');
             });
 
-            table.addEventListener('click', event => {
-                const button = event.target.closest('[data-check]');
-                if (!button) return;
+            table.addEventListener('click', async event => {
+                const button = event.target.closest('[data-manager]');
+                if (!button || button.disabled) return;
 
-                const badge = button.dataset.badge;
+                const isManager = button.dataset.managerState !== '1';
+                const employeeName = button.dataset.employeeName;
+                const confirmation = await window.Swal.fire({
+                    icon: 'question',
+                    title: isManager ? 'Mark as manager?' : 'Remove manager status?',
+                    text: isManager
+                        ? `Are you sure you want to mark ${employeeName} as a manager?`
+                        : `Are you sure you want to remove manager status from ${employeeName}?`,
+                    showCancelButton: true,
+                    confirmButtonText: isManager ? 'Yes, mark as manager' : 'Yes, remove status',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: '#3563ff',
+                    cancelButtonColor: '#64748b',
+                });
 
-                if (checked.has(badge)) checked.delete(badge);
-                else checked.add(badge);
+                if (!confirmation.isConfirmed) return;
 
-                applyChecks();
+                button.disabled = true;
+
+                try {
+                    const response = await fetch(button.dataset.managerUrl, {
+                        method: 'PATCH',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': button.dataset.csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify({ is_manager: isManager }),
+                    });
+                    const result = await response.json();
+
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || 'Unable to update manager status.');
+                    }
+
+                    button.dataset.managerState = result.is_manager ? '1' : '0';
+                    button.setAttribute('aria-pressed', result.is_manager ? 'true' : 'false');
+                    button.title = result.is_manager ? 'Remove manager status' : 'Mark as manager';
+                    button.setAttribute('aria-label', `${button.title} ${employeeName}`);
+                } catch (error) {
+                    await window.Swal.fire({
+                        icon: 'error',
+                        title: 'Update failed',
+                        text: error.message,
+                        confirmButtonColor: '#3563ff',
+                    });
+                } finally {
+                    button.disabled = false;
+                }
             });
 
             const infoToggle = document.querySelector('[data-info-toggle]');
@@ -258,7 +314,9 @@
             });
 
             window.addEventListener('popstate', () => {
-                input.value = new URLSearchParams(window.location.search).get('search') ?? '';
+                const params = new URLSearchParams(window.location.search);
+                input.value = params.get('search') ?? '';
+                departmentFilter.value = params.get('department') ?? '';
                 loadResults(window.location.href, 'none');
             });
         });

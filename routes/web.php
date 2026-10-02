@@ -31,6 +31,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     // 2. Data Master Karyawan (pgsql_portal)
     Route::get('/employee/information', [AdminController::class, 'employee'])->name('employee.index');
+    Route::post('/employee/{badge}/manager', [AdminController::class, 'updateManager'])->name('employee.manager');
+    Route::patch('/employee/{badge}/manager', [AdminController::class, 'updateManager'])->name('employee.manager.update');
     // 3. Rekap Konfirmasi RSVP (pgsql)
     Route::get('/confirmation/attendance', [AdminController::class, 'confirmation'])->name('confirmation.index');
     // 4. Rekap Check-In Hari-H (pgsql)

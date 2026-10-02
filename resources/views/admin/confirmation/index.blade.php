@@ -28,7 +28,6 @@
 
     $statuses = [
         'attending' => ['label' => 'Attending', 'class' => 'bg-emerald-50 text-emerald-700'],
-        'pending' => ['label' => 'Pending', 'class' => 'bg-slate-100 text-slate-500'],
         'declined' => ['label' => 'Not attending', 'class' => 'bg-orange-50 text-red-600'],
     ];
 
@@ -69,7 +68,7 @@
                                 @foreach ($departments ?? [] as $department)
                                     <option value="{{ $department }}" @selected(request('department') === $department)>{{ $department }}
                                     </option>
-                                @endforeach
+                                @endforeach 
                             </select>
                             <input id="confirmation-search-input" type="search" name="search"
                                 value="{{ $search }}" placeholder="Search badge ID or employee..."
@@ -107,7 +106,7 @@
 
                             <tbody>
                                 @forelse ($employees as $employee)
-                                    @php($status = $statuses[$employee['status']])
+                                    @php($status = $statuses[$employee['status'] ?? ''] ?? ['label' => 'Unknown', 'class' => 'bg-slate-100 text-slate-600'])
                                     <tr class="transition duration-300 even:bg-slate-50/60 hover:bg-violet-50/60 [animation:rise_.6s_ease-out_both]"
                                         style="animation-delay: {{ 0.2 + $loop->index * 0.06 }}s">
                                         <td

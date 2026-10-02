@@ -3,7 +3,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\MasterAttendance;
-use App\Models\Invitation;
 use App\Models\Confirmation;
 use App\Models\Attendance;
 use App\Models\Prize;
@@ -18,7 +17,7 @@ class AdminController extends Controller
             return redirect()->route('admin.login');
         }
 
-        $invited   = Invitation::count();
+        $invited   = MasterAttendance::count();
         $confirmed = Confirmation::where('is_attending', true)->count();
         $declined  = Confirmation::where('is_attending', false)->count();
         $checkedIn = Attendance::count();
@@ -52,6 +51,13 @@ class AdminController extends Controller
         }
 
         $search = $request->query('search');
+        $department = $request->query('department');
+        $departments = MasterAttendance::query()
+            ->whereNotNull('department')
+            ->whereRaw("TRIM(department) <> ''")
+            ->groupBy('department')
+            ->orderBy('department')
+            ->pluck('department');
 
         $employees = MasterAttendance::query()->when($search, function ($query, $search) {
             $query->where(function ($query) use ($search) {
@@ -59,16 +65,44 @@ class AdminController extends Controller
                     ->orWhere('badge_id', 'ilike', "%{$search}%")
                     ->orWhere('department', 'ilike', "%{$search}%");
             });
-        })->paginate(15)->withQueryString();
+        })->when($department, fn ($query, $department) => $query->where('department', $department))
+            ->paginate(15)
+            ->withQueryString();
 
         $employees->getCollection()->transform(fn (MasterAttendance $employee) => [
             'badge' => $employee->badge_id,
             'name' => $employee->name,
             'position' => $employee->position ?? '-',
             'department' => $employee->department ?? '-',
+            'is_manager' => (bool) $employee->is_manager,
         ]);
 
-        return view('admin.employee.index', compact('employees', 'search'));
+        return view('admin.employee.index', compact('employees', 'search', 'department', 'departments'));
+    }
+
+    public function updateManager(Request $request, string $badge)
+    {
+        if (! Auth::check()) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $validated = $request->validate([
+            'is_manager' => ['required', 'boolean'],
+        ]);
+
+        $employee = MasterAttendance::where('badge_id', $badge)->first();
+
+        if (! $employee) {
+            return response()->json(['message' => 'Employee not found.'], 404);
+        }
+
+        $employee->update(['is_manager' => $validated['is_manager']]);
+
+        return response()->json([
+            'success' => true,
+            'badge_id' => $employee->badge_id,
+            'is_manager' => (bool) $employee->is_manager,
+        ]);
     }
 
     public function confirmation(Request $request)
@@ -79,6 +113,13 @@ class AdminController extends Controller
 
         $search = $request->query('search');
         $status = $request->query('status');
+        $department = $request->query('department');
+        $departments = MasterAttendance::query()
+            ->whereNotNull('department')
+            ->whereRaw("TRIM(department) <> ''")
+            ->groupBy('department')
+            ->orderBy('department')
+            ->pluck('department');
 
         $confirmations = Confirmation::query()
             ->select('badge_id', 'is_attending', 'confirmed_at');
@@ -92,6 +133,7 @@ class AdminController extends Controller
                 'rsvp.is_attending as rsvp_is_attending',
                 'rsvp.confirmed_at as rsvp_confirmed_at',
             ])
+            ->whereNotNull('rsvp.badge_id')
             ->when($search, function ($query, $search) {
                 $term = '%'.mb_strtolower(trim($search)).'%';
                 $query->where(function ($query) use ($term) {
@@ -99,14 +141,13 @@ class AdminController extends Controller
                         ->orWhereRaw('LOWER(master_attendance.badge_id) LIKE ?', [$term])
                         ->orWhereRaw('LOWER(master_attendance.department) LIKE ?', [$term]);
                 });
-            });
+            })
+            ->when($department, fn ($query, $department) => $query->where('master_attendance.department', $department));
 
         if ($status === 'attending') {
             $query->where('rsvp.is_attending', true);
         } elseif ($status === 'declined') {
             $query->where('rsvp.is_attending', false);
-        } elseif ($status === 'pending') {
-            $query->whereNull('rsvp.badge_id');
         }
 
         $employees = $query
@@ -123,11 +164,11 @@ class AdminController extends Controller
                 'name' => $employee->name,
                 'position' => $employee->position ?? '-',
                 'department' => $employee->department ?? '-',
-                'status' => $isAttending === null ? 'pending' : ((bool) $isAttending ? 'attending' : 'declined'),
+                'status' => (bool) $isAttending ? 'attending' : 'declined',
             ];
         });
 
-        return view('admin.confirmation.index', compact('employees', 'search', 'status'));
+        return view('admin.confirmation.index', compact('employees', 'search', 'status', 'department', 'departments'));
     }
 
     public function attendance(Request $request)
