@@ -24,12 +24,7 @@
 @php
     $event = ['name' => ''];
 
-    $columns = ['NO.', 'PRIZE', 'STOCK LEFT', 'STATUS', 'WINNER', 'BADGE ID', 'DEPARTMENT'];
-
-    $statuses = [
-        'given' => ['label' => 'Given', 'class' => 'bg-emerald-50 text-emerald-600'],
-        'available' => ['label' => 'Available', 'class' => 'bg-blue-50 text-[#3563ff]'],
-    ];
+    $columns = ['NO.', 'PRIZE', 'QTY'];
 
     $prizes = collect($prizes ?? [])->values();
 @endphp
@@ -53,12 +48,12 @@
 
                 <section
                     class="mt-6 min-w-0 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-lg shadow-blue-100/50 sm:mt-8 sm:p-6 [animation:rise_.7s_.1s_ease-out_both]">
-                    <x-admin.table_search target="prize-table" placeholder="Search prizes or winners..."
+                    <x-admin.table_search target="prize-table" placeholder="Search prizes..."
                         class="mb-4 sm:ml-auto" />
 
                     <div class="-mx-1 overflow-x-auto overscroll-x-contain px-1">
                         <table id="prize-table"
-                            class="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
+                            class="w-full min-w-[480px] border-separate border-spacing-0 text-left text-sm">
                             <thead>
                                 <tr class="bg-violet-50/60 text-[11px] font-semibold tracking-widest text-slate-500">
                                     @foreach ($columns as $column)
@@ -73,9 +68,6 @@
 
                             <tbody>
                                 @forelse ($prizes as $prize)
-                                    @php
-                                        $status = $statuses[filled($prize['winner'] ?? null) ? 'given' : 'available'];
-                                    @endphp
                                     <tr class="transition duration-300 even:bg-slate-50/60 hover:bg-violet-50/60 [animation:rise_.6s_ease-out_both]"
                                         style="animation-delay: {{ 0.2 + $loop->index * 0.06 }}s">
                                         <td
@@ -86,19 +78,6 @@
                                             {{ $prize['name'] }}</td>
                                         <td class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">
                                             {{ number_format($prize['stock']) }}</td>
-                                        <td
-                                            class="whitespace-nowrap border-b border-slate-100 px-3 py-4 sm:px-5 sm:py-8">
-                                            <span
-                                                class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $status['class'] }}">{{ $status['label'] }}</span>
-                                        </td>
-                                        <td
-                                            class="border-b border-slate-100 px-3 py-4 font-semibold text-[#26346b] sm:px-5 sm:py-8">
-                                            {{ $prize['winner'] ?? '-' }}</td>
-                                        <td
-                                            class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">
-                                            {{ $prize['badge'] ?? '-' }}</td>
-                                        <td class="border-b border-slate-100 px-3 py-4 text-slate-500 sm:px-5 sm:py-8">
-                                            {{ $prize['department'] ?? '-' }}</td>
                                     </tr>
                                 @empty
                                     <tr>
