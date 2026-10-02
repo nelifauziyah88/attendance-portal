@@ -27,8 +27,8 @@
     $columns = ['NO.', 'BADGE ID', 'NAME', 'POSITION', 'DEPARTMENT', 'STATUS'];
 
     $statuses = [
-        'attending' => ['label' => 'Attending', 'class' => 'bg-emerald-50 text-emerald-700'],
-        'declined' => ['label' => 'Not attending', 'class' => 'bg-orange-50 text-red-600'],
+        'attending' => ['label' => 'Attend', 'class' => 'bg-emerald-50 text-emerald-700'],
+        'declined' => ['label' => 'Not attend', 'class' => 'bg-orange-50 text-red-600'],
     ];
 
 @endphp
