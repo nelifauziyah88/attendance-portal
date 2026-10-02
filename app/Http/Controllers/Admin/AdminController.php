@@ -6,6 +6,7 @@ use App\Models\MasterAttendance;
 use App\Models\Confirmation;
 use App\Models\Attendance;
 use App\Models\Prize;
+use App\Models\EventSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,10 +18,15 @@ class AdminController extends Controller
             return redirect()->route('admin.login');
         }
 
-        $invited   = MasterAttendance::count();
+        $invited = MasterAttendance::count();
         $confirmed = Confirmation::where('is_attending', true)->count();
-        $declined  = Confirmation::where('is_attending', false)->count();
-        $checkedIn = Attendance::count();
+        $declined = Confirmation::where('is_attending', false)->count();
+        $attendingBadgeIds = Confirmation::query()
+            ->where('is_attending', true)
+            ->select('badge_id');
+        $checkedIn = Attendance::query()
+            ->whereIn('badge_id', $attendingBadgeIds)
+            ->count();
 
         // 2. Kalkulasi porsi yang belum check-in
         $pending = max(0, $confirmed - $checkedIn);
@@ -30,6 +36,60 @@ class AdminController extends Controller
         $declinedRate   = $invited > 0 ? round(($declined / $invited) * 100) : 0;
         $checkedRate    = $confirmed > 0 ? round(($checkedIn / $confirmed) * 100) : 0;
         $notCheckedRate = max(0, 100 - $checkedRate);
+        $confirmationPending = max(0, $invited - $confirmed - $declined);
+        $percentage = fn (int $value, int $total) => $total > 0 ? round(($value / $total) * 100, 1) : 0;
+
+        $charts = [
+            [
+                'title' => 'Confirmation',
+                'subtitle' => "Based on {$invited} invited employees",
+                'total' => $invited,
+                'segments' => [
+                    [
+                        'label' => 'Confirmation yes',
+                        'value' => $confirmed,
+                        'percent' => $percentage($confirmed, $invited),
+                        'color' => '#10b981',
+                        'class' => 'bg-emerald-500',
+                    ],
+                    [
+                        'label' => 'Confirmation no',
+                        'value' => $declined,
+                        'percent' => $percentage($declined, $invited),
+                        'color' => '#f97316',
+                        'class' => 'bg-orange-500',
+                    ],
+                    [
+                        'label' => 'Pending',
+                        'value' => $confirmationPending,
+                        'percent' => $percentage($confirmationPending, $invited),
+                        'color' => '#64748b',
+                        'class' => 'bg-slate-500',
+                    ],
+                ],
+            ],
+            [
+                'title' => 'Attendance',
+                'subtitle' => "Based on {$confirmed} confirmed attendees",
+                'total' => $confirmed,
+                'segments' => [
+                    [
+                        'label' => 'Checked in',
+                        'value' => $checkedIn,
+                        'percent' => $percentage($checkedIn, $confirmed),
+                        'color' => '#3563ff',
+                        'class' => 'bg-[#3563ff]',
+                    ],
+                    [
+                        'label' => 'Not checked in',
+                        'value' => $pending,
+                        'percent' => $percentage($pending, $confirmed),
+                        'color' => '#a855f7',
+                        'class' => 'bg-purple-500',
+                    ],
+                ],
+            ],
+        ];
 
         return view('admin.dashboard', compact(
             'invited',
@@ -40,7 +100,8 @@ class AdminController extends Controller
             'confirmedRate',
             'declinedRate',
             'checkedRate',
-            'notCheckedRate'
+            'notCheckedRate',
+            'charts'
         ));
     }
 
