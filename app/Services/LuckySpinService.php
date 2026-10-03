@@ -35,7 +35,7 @@ class LuckySpinService
         return [
             'checkedIn' => MasterAttendance::whereHas('attendance')->count(),
             'winners' => $winners,
-            'winnerSlots' => Prize::sum('stock') + $winners,
+            'winnerSlots' => Prize::sum('current_stock'),
             'eligible' => $this->getEligibleParticipants()->count(),
         ];
     }
@@ -78,29 +78,19 @@ class LuckySpinService
                 throw new Exception('Semua slot hadiah telah digunakan. Tidak ada drawing tersisa.');
             }
 
-            // 1. Ambil Hadiah Pertama yang Stoknya Masih Ada
-            $prize = $this->getCurrentPrize();
-
-            if (!$prize) {
-                throw new Exception('Semua stok hadiah telah habis!');
-            }
-
             $eligibleCandidates = $this->getEligibleParticipants()->get();
 
             if ($eligibleCandidates->isEmpty()) {
-                throw new Exception('Tidak ada peserta eligible (non-manager) yang tersisa.');
+                throw new Exception('Tidak ada peserta eligible yang tersisa.');
             }
 
-            // 3. Pilih Pemenang Secara Acak
+            // Pilih Pemenang Secara Acak
             $winner = $eligibleCandidates->random();
 
-            // 4. Potong Stok Hadiah
-            $prize->decrement('stock');
-
-            // 5. Simpan Record Pemenang
+            // Simpan Record Pemenang
             $luckySpin = LuckySpin::create([
                 'badge_id' => $winner->badge_id,
-                'prize_id' => $prize->id,
+                'prize_id' => null,
                 'won_at' => now(),
             ]);
 
@@ -111,9 +101,6 @@ class LuckySpinService
                 'name' => $winner->name,
                 'position' => $winner->position,
                 'department' => $winner->department,
-                'prize' => $prize->name,
-                'prize_id' => $prize->id,
-                'remaining_stock' => $prize->fresh()->stock,
             ];
         });
     }
@@ -125,14 +112,7 @@ class LuckySpinService
     {
         DB::transaction(function () use ($badgeId) {
             $spinRecord = LuckySpin::activeWinner()->where('badge_id', $badgeId)->firstOrFail();
-            $prize = Prize::find($spinRecord->prize_id);
 
-            // Restore stok hadiah (+1)
-            if ($prize) {
-                $prize->increment('stock');
-            }
-
-            // Keep the badge reserved so a forfeited winner cannot be drawn again.
             $spinRecord->update(['won_at' => LuckySpin::FORFEITED_AT]);
         });
     }

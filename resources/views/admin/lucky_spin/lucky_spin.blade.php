@@ -494,7 +494,7 @@
                 ...winner
             };
 
-            setResult(`WINNER ${draw}`, winner.name, `BADGE ID: ${winner.badge}`);
+            setResult(`WINNER`, winner.name, `BADGE ID: ${winner.badge}`);
 
             state.history = [entry, ...state.history.filter((item) => item.badge !== winner.badge)];
             if (stats) applyStats(stats);

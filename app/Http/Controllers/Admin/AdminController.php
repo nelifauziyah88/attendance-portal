@@ -6,9 +6,10 @@ use App\Models\MasterAttendance;
 use App\Models\Confirmation;
 use App\Models\Attendance;
 use App\Models\Prize;
-use App\Models\EventSetting;
+use App\Models\EventControl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -18,6 +19,7 @@ class AdminController extends Controller
             return redirect()->route('admin.login');
         }
 
+        $eventControl = EventControl::first();
         $invited = MasterAttendance::count();
         $confirmed = Confirmation::where('is_attending', true)->count();
         $declined = Confirmation::where('is_attending', false)->count();
@@ -28,10 +30,10 @@ class AdminController extends Controller
             ->whereIn('badge_id', $attendingBadgeIds)
             ->count();
 
-        // 2. Kalkulasi porsi yang belum check-in
+        // Kalkulasi porsi yang belum check-in
         $pending = max(0, $confirmed - $checkedIn);
 
-        // 3. Kalkulasi Persentase
+        // Kalkulasi Persentase
         $confirmedRate  = $invited > 0 ? round(($confirmed / $invited) * 100) : 0;
         $declinedRate   = $invited > 0 ? round(($declined / $invited) * 100) : 0;
         $checkedRate    = $confirmed > 0 ? round(($checkedIn / $confirmed) * 100) : 0;
@@ -101,7 +103,8 @@ class AdminController extends Controller
             'declinedRate',
             'checkedRate',
             'notCheckedRate',
-            'charts'
+            'charts',
+            'eventControl',
         ));
     }
 
@@ -239,7 +242,8 @@ class AdminController extends Controller
         }
 
         $search = $request->query('search');
-        $department = $request->query('department');
+        $department = trim($request->query('department', ''));
+
         $departments = MasterAttendance::query()
             ->whereNotNull('department')
             ->whereRaw("TRIM(department) <> ''")
@@ -247,14 +251,42 @@ class AdminController extends Controller
             ->orderBy('department')
             ->pluck('department');
 
+        $departmentBadgeIds = null;
+        if ($department !== '') {
+            $departmentBadgeIds = MasterAttendance::query()
+                ->where('department', $department)
+                ->pluck('badge_id');
+        }
+
+        $searchBadgeIds = null; 
+        if ($search !== '') { 
+            $searchBadgeIds = MasterAttendance::query() 
+            ->where(function ($query) use ($search) { 
+                $query->where('badge_id', 'ilike', "%{$search}%") 
+                ->orWhere('name', 'ilike', "%{$search}%") 
+                ->orWhere('position', 'ilike', "%{$search}%") 
+                ->orWhere('department', 'ilike', "%{$search}%"); 
+            }) 
+                ->pluck('badge_id'); 
+            }
+
         $attendances = Attendance::query()
-            ->when($search, fn ($query) => $query->where('badge_id', 'ilike', "%{$search}%"))
+            ->when($searchBadgeIds !== null, function ($query) use ($searchBadgeIds) {
+                $query->whereIn('badge_id', $searchBadgeIds);
+            })
+            ->when($departmentBadgeIds !== null, function ($query) use ($departmentBadgeIds) {
+                $query->whereIn('badge_id', $departmentBadgeIds);
+            })
+
             ->latest('check_in_at')
             ->paginate(15)
             ->withQueryString();
 
-        $badgeIds = $attendances->pluck('badge_id')->toArray();
-        $employees = MasterAttendance::whereIn('badge_id', $badgeIds)->get()->keyBy('badge_id');
+        $badgeIds = $attendances
+            ->pluck('badge_id')
+            ->toArray();
+
+        $employees = MasterAttendance::query() ->whereIn('badge_id', $badgeIds) ->get() ->keyBy('badge_id');
 
         $attendances->getCollection()->transform(function ($item) use ($employees) {
             $employee = $employees->get($item->badge_id);
@@ -273,28 +305,57 @@ class AdminController extends Controller
 
     public function prizes()
     {
-        if (! Auth::check()) {
+        if (!Auth::check()) {
             return redirect()->route('admin.login');
         }
 
         $prizes = Prize::query()
-            ->with(['luckySpins.masterAttendance'])
             ->orderBy('name')
-            ->get()
+            ->get([
+                'id',
+                'name',
+                'current_stock',
+            ])
             ->map(function (Prize $prize) {
-                $winners = $prize->luckySpins
-                    ->map(fn ($spin) => $spin->masterAttendance)
-                    ->filter();
-
                 return [
                     'name' => $prize->name,
-                    'stock' => $prize->stock,
-                    'winner' => $winners->pluck('name')->unique()->implode(', '),
-                    'badge' => $prize->luckySpins->pluck('badge_id')->implode(', '),
-                    'department' => $winners->pluck('department')->filter()->unique()->implode(', '),
+                    'stock' => $prize->current_stock,
+                    'winner' => '-',
+                    'badge' => '-',
+                    'department' => '-',
                 ];
             });
 
         return view('admin.prizes.index', compact('prizes'));
+    }
+
+    public function updateSchedule(Request $request)
+    {
+        if (!Auth::check()) {
+            return redirect()->route('admin.login');
+        }
+
+        $validated = $request->validate([
+            'event_start' => ['required', 'date'],
+            'event_end' => ['required', 'date', 'after:event_start'],
+        ]);
+
+        $exists = DB::table('event_control')->exists();
+
+        if ($exists) {
+            DB::table('event_control')->update([
+                'event_start' => $validated['event_start'],
+                'event_end' => $validated['event_end'],
+            ]);
+        } else {
+            DB::table('event_control')->insert([
+                'event_start' => $validated['event_start'],
+                'event_end' => $validated['event_end'],
+            ]);
+        }
+
+        return redirect()
+            ->route('admin.dashboard')
+            ->with('success', 'Check-in schedule updated successfully.');
     }
 }

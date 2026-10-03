@@ -60,7 +60,7 @@
                     </div>
                 </div>
 
-            {{-- <button type="button" id="checkin-open" aria-haspopup="dialog"
+            <button type="button" id="checkin-open" aria-haspopup="dialog"
                 class="mt-6 flex w-full items-center justify-between gap-4 rounded-2xl border border-violet-200/70 bg-white p-5 text-left shadow-lg shadow-violet-100/50 transition duration-300 hover:shadow-xl hover:shadow-fuchsia-200/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-fuchsia-100 active:scale-[.99] sm:p-6 [animation:rise_.7s_.05s_ease-out_both]">
                 <span class="flex min-w-0 items-center gap-4">
                     <span class="grid size-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-fuchsia-600 to-violet-700 text-white shadow-md shadow-fuchsia-200/60">
@@ -75,8 +75,10 @@
                     <span class="min-w-0">
                         <span class="block text-[10px] font-semibold tracking-widest text-slate-500">SET CHECK-IN SCHEDULE</span>
                         <span id="checkin-summary" class="mt-1 block truncate text-sm font-semibold text-[#2e1065] sm:text-base">
-                            @if(isset($setting) && $setting->checkin_start &&$setting->checkin_end)
-                                {{ \Carbon\Carbon::parse($setting->checkin_start)->format('d M Y, H:i') }} - {{ \Carbon\Carbon::parse($setting->checkin_end)->format('d M Y, H:i') }}
+                            @if(isset($eventControl) && $eventControl->event_start && $eventControl->event_end)
+                                {{ $eventControl->event_start->format('d M Y, H:i') }}
+                                -
+                                {{ $eventControl->event_end->format('d M Y, H:i') }}
                             @else
                                 Not set yet
                             @endif
@@ -89,7 +91,7 @@
                         <path d="m9 6 6 6-6 6" />
                     </svg>
                 </span>
-            </button> --}}
+            </button>
 
                 <section
                     class="relative mt-6 overflow-hidden rounded-2xl bg-gradient-to-r from-[#a3248f] via-[#5b1b7a] to-[#2e1065] px-5 py-6 text-white shadow-xl shadow-fuchsia-200/60 sm:px-8 sm:py-7 [animation:rise_.7s_.1s_ease-out_both]">
@@ -208,11 +210,11 @@
 
     <dialog id="checkin-modal" aria-labelledby="checkin-title"
     class="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-violet-200/70 bg-white p-0 text-[#2e1065] shadow-2xl shadow-fuchsia-200/60 backdrop:bg-[#1a0640]/60 backdrop:backdrop-blur-sm">
-    <form id="checkin-form" action="#" method="POST" class="p-5 sm:p-6">
+    <form id="checkin-form" action="{{ route('admin.schedule.update') }}" method="POST" class="p-5 sm:p-6">
         @csrf
         <input type="hidden" name="event_name" value="{{ $setting->event_name ?? 'D&D 2026' }}">
-        <input type="hidden" id="checkin_start" name="checkin_start">
-        <input type="hidden" id="checkin_end" name="checkin_end">
+        <input type="hidden" id="event_start" name="event_start">
+        <input type="hidden" id="event_end" name="event_end">
 
         <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
@@ -235,13 +237,13 @@
                     <label class="block">
                         <span class="text-xs font-medium text-slate-500">Date</span>
                         <input type="date" id="checkin-start-date" required
-                            value="{{ old('start_date', optional($setting->checkin_start ?? null)->format('Y-m-d')) }}"
+                            value="{{ old('start_date', optional($eventControl->event_start ?? null)->format('Y-m-d')) }}"
                             class="mt-1 h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100">
                     </label>
                     <label class="block">
                         <span class="text-xs font-medium text-slate-500">Time</span>
                         <input type="time" id="checkin-start-time" step="1" required
-                            value="{{ old('start_time', optional($setting->checkin_start ?? null)->format('H:i:s')) }}"
+                            value="{{ old('start_time', optional($eventControl->event_start ?? null)->format('H:i:s')) }}"
                             class="mt-1 h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100">
                     </label>
                 </div>
@@ -253,13 +255,13 @@
                     <label class="block">
                         <span class="text-xs font-medium text-slate-500">Date</span>
                         <input type="date" id="checkin-end-date" required
-                            value="{{ old('end_date', optional($setting->checkin_end ?? null)->format('Y-m-d')) }}"
+                            value="{{ old('end_date', optional($eventControl->event_end ?? null)->format('Y-m-d')) }}"
                             class="mt-1 h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100">
                     </label>
                     <label class="block">
                         <span class="text-xs font-medium text-slate-500">Time</span>
                         <input type="time" id="checkin-end-time" step="1" required
-                            value="{{ old('end_time', optional($setting->checkin_end ?? null)->format('H:i:s')) }}"
+                            value="{{ old('end_time', optional($eventControl->event_end ?? null)->format('H:i:s')) }}"
                             class="mt-1 h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100">
                     </label>
                 </div>
@@ -353,19 +355,23 @@
         });
 
         form.addEventListener('submit', (event) => {
-            event.preventDefault();
-
             const start = new Date(`${startDate.value}T${startTime.value}`);
             const end = new Date(`${endDate.value}T${endTime.value}`);
 
             if (end <= start) {
+                event.preventDefault();
+
                 error.textContent = 'Check-in end must be after check-in start.';
                 error.classList.remove('hidden');
+
                 return;
             }
 
-            summary.textContent = `${formatDateTime(start)} to ${formatDateTime(end)}`;
-            modal.close();
+            document.getElementById('event_start').value =
+                `${startDate.value} ${startTime.value}`;
+
+            document.getElementById('event_end').value =
+                `${endDate.value} ${endTime.value}`;
         });
     });
 </script>

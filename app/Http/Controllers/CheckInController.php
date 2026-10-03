@@ -2,15 +2,36 @@
 namespace App\Http\Controllers;
 
 use App\Models\MasterAttendance;
+use App\Models\EventControl;
 use App\Models\Attendance;
 use App\Models\Confirmation;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class CheckInController extends Controller
 {
     public function index()
     {
-        return view('users.attendance.index');
+        $eventControl = EventControl::first();
+
+        if (!$eventControl) {
+            abort(404);
+        }
+
+        $now = Carbon::now();
+
+        if ($now->lt($eventControl->event_start)) {
+            $scheduleStatus = 'upcoming';
+        } elseif ($now->gt($eventControl->event_end)) {
+            $scheduleStatus = 'ended';
+        } else {
+            $scheduleStatus = 'active';
+        }
+
+        return view('users.attendance.index', [
+            'eventControl' => $eventControl,
+            'scheduleStatus' => $scheduleStatus,
+        ]);
     }
 
     public function findEmployee(string $badgeId)
@@ -56,7 +77,7 @@ class CheckInController extends Controller
             'badge_id' => 'required|string',
         ], [
             'badge_id.required' => 'Badge ID wajib diisi.',
-        ]);
+        ]);   
 
         $employee = MasterAttendance::where('badge_id', $request->badge_id)->first();
         if (!$employee) {

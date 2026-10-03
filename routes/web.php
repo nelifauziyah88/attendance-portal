@@ -29,14 +29,22 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // 1. Ringkasan Dashboard & Statistik Utama
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-    // 2. Data Master Karyawan (pgsql_portal)
+
+    // 2. Atur Schedule Check-In (Forward to DB for Set Schedule)    
+    Route::post('/schedule', [AdminController::class, 'updateSchedule'])->name('schedule.update');
+
+    // 3. Data Master Karyawan (pgsql_portal)
     Route::get('/employee/information', [AdminController::class, 'employee'])->name('employee.index');
     Route::post('/employee/{badge}/manager', [AdminController::class, 'updateManager'])->name('employee.manager');
     Route::patch('/employee/{badge}/manager', [AdminController::class, 'updateManager'])->name('employee.manager.update');
-    // 3. Rekap Konfirmasi RSVP (pgsql)
+
+    // 4. Rekap Konfirmasi RSVP (pgsql)
     Route::get('/confirmation/attendance', [AdminController::class, 'confirmation'])->name('confirmation.index');
-    // 4. Rekap Check-In Hari-H (pgsql)
+
+    // 5. Rekap Check-In Hari-H (pgsql)
     Route::get('/attendance/list', [AdminController::class, 'attendance'])->name('attendance.index');
+
+    // 6. Rekap Hadiah
     Route::get('/prizes', [AdminController::class, 'prizes'])->name('prizes.index');
 
     Route::prefix('lucky-spin')->name('lucky-spin.')->group(function () {

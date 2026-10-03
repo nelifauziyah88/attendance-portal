@@ -26,6 +26,14 @@
 @endphp
 
 @section('content')
+
+    <div
+        @class([
+            'transition-all duration-500',
+            'blur-md pointer-events-none select-none' => $scheduleStatus !== 'active',
+        ])
+    >
+
     <section class="shrink-0 overflow-hidden bg-[#2e1065]">
         <button type="button" id="posterTrigger" aria-label="View poster in full screen"
             class="group relative block w-full cursor-zoom-in focus:outline-none focus-visible:ring-4 focus-visible:ring-fuchsia-400/70">
@@ -75,7 +83,7 @@
         </article>
 
 
-        <div class="mt-6 flex w-full max-w-xl flex-col gap-3 min-[480px]:flex-row min-[480px]:items-end">
+        <div class="mx-auto mt-6 flex w-full max-w-xl flex-col gap-3 min-[480px]:flex-row min-[480px]:items-end">
             <div class="flex-1">
                 <label for="badgeLookup" class="mb-2 block text-left text-sm font-medium">Employee Badge ID</label>
                 <input id="badgeLookup" type="text" autocomplete="off" placeholder="Enter your Badge ID"
@@ -88,13 +96,13 @@
             </button>
         </div>
 
-        <div class="mt-4 grid w-full max-w-xl gap-2 text-left text-sm sm:grid-cols-2">
+        <div class="mx-auto mt-4 grid w-full max-w-xl gap-2 text-left text-sm sm:grid-cols-2">
             <p>RSVP: <span id="textRsvpStatus" class="font-semibold">-</span></p>
             <p>Check-in: <span id="textCheckinStatus" class="font-semibold">-</span></p>
         </div>
 
         <form method="POST" action="{{ route('checkin.store') }}"
-            class="mt-8 w-full max-w-xl text-center [animation:rise_.8s_.35s_ease-out_both]">
+            class="mx-auto mt-8 w-full max-w-xl text-center [animation:rise_.8s_.35s_ease-out_both]">
             @csrf
             <input type="hidden" id="badge_id" name="badge_id" value="">
 
@@ -147,12 +155,111 @@
         <p class="mt-10 text-center text-xs text-slate-400">&copy; {{ date('Y') }} Seatrium. All rights reserved.</p>
     </section>
 
+    </div>
+
+    @if ($scheduleStatus === 'upcoming')
+        <div class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/50 px-5 backdrop-blur-[2px]">
+            <div class="w-full max-w-md rounded-3xl border border-white/30 bg-white/95 p-7 text-center shadow-2xl sm:p-9">
+                <div class="mx-auto grid size-16 place-items-center rounded-2xl bg-gradient-to-br from-fuchsia-600 to-violet-700 text-white shadow-lg shadow-violet-300/40">
+                    <svg class="size-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M12 7v5l3 2"/>
+                    </svg>
+                </div>
+                <h2 class="mt-5 text-2xl font-bold text-[#2e1065]">Check-in Belum Dibuka</h2>
+                <p class="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-500">Halaman check-in belum dapat diakses hingga waktu acara dimulai. Silakan kembali setelah waktu yang telah ditentukan.</p>
+                <div class="mt-6 rounded-2xl border border-violet-100 bg-violet-50 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-widest text-violet-500">Acara Dimulai</p>
+                    <p class="mt-1 text-lg font-bold text-violet-800">{{ $eventControl->event_start->format('d M Y, H:i') }}</p>
+                </div>
+                <div id="scheduleCountdown" class="mt-4 text-sm font-semibold text-violet-600">Menunggu waktu acara...</div>
+                <div class="mt-6 border-t border-slate-100 pt-6">
+                    <p class="text-sm text-slate-500">Bagi yang belum memiliki invitation</p>
+                    <a href="{{ route('invitation.index') }}" class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-violet-700 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-violet-200 transition hover:-translate-y-0.5 hover:shadow-xl">
+                        View Invitation
+                        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m9 18 6-6-6-6"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    @elseif ($scheduleStatus === 'ended')
+        <div class="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/50 px-5 backdrop-blur-[2px]">
+            <div class="w-full max-w-md rounded-3xl border border-white/30 bg-white/95 p-7 text-center shadow-2xl sm:p-9">
+                <div class="mx-auto grid size-16 place-items-center rounded-2xl bg-slate-100 text-slate-500">
+                    <svg class="size-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M8 12h8"/>
+                    </svg>
+                </div>
+                <h2 class="mt-5 text-2xl font-bold text-[#2e1065]">Check-in Telah Ditutup</h2>
+                <p class="mx-auto mt-3 max-w-sm text-sm leading-6 text-slate-500">Waktu check-in untuk acara ini telah berakhir. Halaman check-in sudah tidak dapat digunakan.</p>
+                <div class="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Check-in Berakhir</p>
+                    <p class="mt-1 text-lg font-bold text-slate-700">{{ $eventControl->event_end->format('d M Y, H:i') }}</p>
+                </div>
+                <div class="mt-6 border-t border-slate-100 pt-6">
+                    <p class="text-sm text-slate-500">Bagi yang belum memiliki invitation</p>
+                    <a href="{{ route('invitation.index') }}"class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-violet-200 bg-white px-5 py-3.5 text-sm font-semibold text-violet-700 transition hover:border-violet-400 hover:bg-violet-50">
+                        View Invitation
+                        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m9 18 6-6-6-6"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const posterTrigger = document.getElementById('posterTrigger');
             const posterLightbox = document.getElementById('posterLightbox');
             const posterLightboxImg = document.getElementById('posterLightboxImg');
             const posterClose = document.getElementById('posterClose');
+            const scheduleStatus = @json($scheduleStatus);
+
+            @if ($scheduleStatus === 'upcoming')
+
+                const scheduleStart = new Date(
+                    @json($eventControl->event_start->toIso8601String())
+                ).getTime();
+
+                const countdownElement =
+                    document.getElementById('scheduleCountdown');
+
+
+                function updateCountdown() {
+                    const now = new Date().getTime();
+                    const distance = scheduleStart - now;
+
+                    if (distance <= 0) {
+                        countdownElement.textContent =
+                            'Acara sedang dimulai...';
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1000);
+                        return;
+                    }
+
+                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                    let text = 'Dimulai dalam ';
+
+                    if (days > 0) {text += `${days} hari `;}
+                    text += `${String(hours).padStart(2, '0')}:`;
+                    text += `${String(minutes).padStart(2, '0')}:`;
+                    text += `${String(seconds).padStart(2, '0')}`;
+
+                    countdownElement.textContent = text;
+                }
+                updateCountdown();
+                setInterval(updateCountdown, 1000);
+            @endif
 
             function openPoster() {
                 posterLightbox.classList.remove('invisible', 'pointer-events-none', 'opacity-0');
