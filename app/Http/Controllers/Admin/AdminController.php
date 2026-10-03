@@ -271,7 +271,7 @@ class AdminController extends Controller
             }
 
         $attendances = Attendance::query()
-<<<<<<< HEAD
+
             ->when($searchBadgeIds !== null, function ($query) use ($searchBadgeIds) {
                 $query->whereIn('badge_id', $searchBadgeIds);
             })
@@ -279,12 +279,11 @@ class AdminController extends Controller
                 $query->whereIn('badge_id', $departmentBadgeIds);
             })
 
-=======
             ->when($search, fn ($query) => $query->where('badge_id', 'ilike', "%{$search}%"))
             ->when($department, fn ($query, $department) => $query->whereHas('user', function ($query) use ($department) {
                 $query->where('department', $department);
             }))
->>>>>>> f96166abb68f9f739218d2a995d2d06c11fafe48
+
             ->latest('check_in_at')
             ->paginate(15)
             ->withQueryString();
@@ -309,6 +308,7 @@ class AdminController extends Controller
 
         return view('admin.attendance.index', compact('attendances', 'search', 'department', 'departments'));
     }
+
 
     public function prizes()
     {
