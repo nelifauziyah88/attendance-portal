@@ -229,18 +229,28 @@
                 const countdownElement =
                     document.getElementById('scheduleCountdown');
 
+                let countdownInterval = null; 
+                let isReloading = false;
 
-                function updateCountdown() {
-                    const now = new Date().getTime();
-                    const distance = scheduleStart - now;
-
-                    if (distance <= 0) {
-                        countdownElement.textContent =
-                            'Acara sedang dimulai...';
-                        setTimeout(function() {
-                            window.location.reload();
-                        }, 1000);
-                        return;
+                function updateCountdown() { 
+                    const now = new Date().getTime(); 
+                    const distance = scheduleStart - now; 
+                    
+                    if (distance <= 0) { countdownElement.textContent = 
+                        'Acara sedang dimulai...';
+                    
+                     if (!isReloading) { 
+                        isReloading = true; 
+                        
+                        if (countdownInterval) { 
+                            clearInterval(countdownInterval); 
+                            countdownInterval = null; 
+                        } 
+                        
+                        setTimeout(function() { 
+                            window.location.reload(); 
+                        }, 1000); 
+                    } return; 
                     }
 
                     const days = Math.floor(distance / (1000 * 60 * 60 * 24));
