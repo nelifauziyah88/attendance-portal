@@ -28,6 +28,7 @@
 
     $statuses = [
         'attending' => ['label' => 'Attend', 'class' => 'bg-emerald-50 text-emerald-700'],
+        'pending' => ['label' => 'Pending', 'class' => 'bg-amber-50 text-amber-700'],
         'declined' => ['label' => 'Not attend', 'class' => 'bg-orange-50 text-red-600'],
     ];
 
@@ -59,6 +60,7 @@
                                 class="h-11 w-full rounded-xl border border-violet-200 bg-violet-50/60 px-4 text-sm outline-none transition focus:border-fuchsia-600 focus:bg-white focus:ring-4 focus:ring-fuchsia-100 sm:w-48">
                                 <option value="">All status</option>
                                 <option value="attending" @selected(request('status') === 'attending')>Attend</option>
+                                <option value="pending" @selected(request('status') === 'pending')>Pending</option>
                                 <option value="declined" @selected(request('status') === 'declined')>Not Attend</option>
                             </select>
                             <select id="confirmation-department-filter" name="department"

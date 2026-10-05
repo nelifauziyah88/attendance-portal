@@ -178,6 +178,7 @@ class AdminController extends Controller
         $search = $request->query('search');
         $status = $request->query('status');
         $department = $request->query('department');
+
         $departments = MasterAttendance::query()
             ->whereNotNull('department')
             ->whereRaw("TRIM(department) <> ''")
@@ -197,7 +198,6 @@ class AdminController extends Controller
                 'rsvp.is_attending as rsvp_is_attending',
                 'rsvp.confirmed_at as rsvp_confirmed_at',
             ])
-            ->whereNotNull('rsvp.badge_id')
             ->when($search, function ($query, $search) {
                 $term = '%'.mb_strtolower(trim($search)).'%';
                 $query->where(function ($query) use ($term) {
@@ -212,6 +212,8 @@ class AdminController extends Controller
             $query->where('rsvp.is_attending', true);
         } elseif ($status === 'declined') {
             $query->where('rsvp.is_attending', false);
+        } elseif ($status === 'pending') {
+            $query->whereNull('rsvp.badge_id');
         }
 
         $employees = $query
@@ -223,14 +225,19 @@ class AdminController extends Controller
 
         $employees->getCollection()->transform(function (MasterAttendance $employee) {
             $isAttending = $employee->rsvp_is_attending;
-            return [
-                'badge' => $employee->badge_id,
-                'name' => $employee->name,
-                'position' => $employee->position ?? '-',
-                'department' => $employee->department ?? '-',
-                'status' => (bool) $isAttending ? 'attending' : 'declined',
-            ];
-        });
+                if (is_null($isAttending)) {
+                    $statusLabel = 'pending';
+                } else {
+                    $statusLabel = (bool) $isAttending ? 'attending' : 'declined';
+                }
+                return [
+                    'badge' => $employee->badge_id,
+                    'name' => $employee->name,
+                    'position' => $employee->position ?? '-',
+                    'department' => $employee->department ?? '-',
+                    'status' => $statusLabel,
+                ];
+            });
 
         return view('admin.confirmation.index', compact('employees', 'search', 'status', 'department', 'departments'));
     }
