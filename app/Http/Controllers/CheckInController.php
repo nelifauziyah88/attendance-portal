@@ -14,9 +14,9 @@ class CheckInController extends Controller
     {
         $eventControl = EventControl::first();
 
-        if (!$eventControl) {
+        if (!$eventControl->event_start || !$eventControl->event_end) {
             abort(404);
-        }
+    }
 
         $now = Carbon::now();
 
