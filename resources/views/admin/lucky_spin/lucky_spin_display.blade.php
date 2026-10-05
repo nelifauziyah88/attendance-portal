@@ -102,28 +102,28 @@
         </header>
 
         <main
-            class="relative flex min-h-0 flex-1 flex-col items-center overflow-y-auto overscroll-contain px-4 text-center [animation:rise_.8s_ease-out_both] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            <div class="my-auto flex w-full min-w-0 flex-col items-center py-4">
-                <p class="text-sm font-semibold tracking-widest text-[#bfe6ff] sm:text-lg">LUCKY DRAW</p>
+            class="relative flex min-h-0 flex-1 flex-col items-center overflow-hidden px-4 text-center [animation:rise_.8s_ease-out_both]">
+            <div class="flex h-full min-h-0 w-full min-w-0 flex-col items-center justify-center py-4">
+                <p class="shrink-0 text-sm font-semibold tracking-widest text-[#bfe6ff] sm:text-lg">LUCKY DRAW</p>
                 <h1
-                    class="mt-1 break-words text-2xl font-semibold tracking-tight min-[400px]:text-3xl sm:text-4xl lg:text-5xl">
+                    class="mt-1 shrink-0 break-words text-2xl font-semibold tracking-tight min-[400px]:text-3xl sm:text-4xl lg:text-5xl">
                     Who will be our next lucky winner?</h1>
 
-                <x-admin.reel :participants="$participants" size="lg" class="mx-auto mt-4 max-w-5xl sm:mt-6" />
+                <x-admin.reel :participants="$participants" size="lg" class="mx-auto mt-4 max-w-5xl shrink-0 sm:mt-6" />
 
                 <button type="button" data-spin
-                    class="mt-5 flex h-12 w-full max-w-xs items-center justify-center rounded-xl bg-white px-10 text-sm font-semibold text-[#7a2cc0] shadow-lg shadow-[#2a0b5c]/40 transition duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-fuchsia-500/40 active:scale-[.98] disabled:pointer-events-none disabled:opacity-60 sm:mt-6 sm:w-auto sm:max-w-none">
+                    class="mt-5 flex h-12 w-full max-w-xs shrink-0 items-center justify-center rounded-xl bg-white px-10 text-sm font-semibold text-[#7a2cc0] shadow-lg shadow-[#2a0b5c]/40 transition duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-fuchsia-500/40 active:scale-[.98] disabled:pointer-events-none disabled:opacity-60 sm:mt-6 sm:w-auto sm:max-w-none">
                     Draw Winner
                 </button>
 
                 <section data-winners-section
-                    class="mt-5 hidden w-full min-w-0 max-w-5xl rounded-2xl border border-[#5ad2ff]/50 bg-[#1b0850]/40 p-4 text-left shadow-[0_0_24px_rgba(74,168,255,.3)] backdrop-blur-sm sm:mt-6 sm:p-5">
-                    <h2 class="text-sm font-semibold tracking-widest text-[#bfe6ff]">WINNERS</h2>
+                    class="mt-5 hidden min-h-0 w-full min-w-0 max-w-5xl flex-col rounded-2xl border border-[#5ad2ff]/50 bg-[#1b0850]/40 p-4 text-left shadow-[0_0_24px_rgba(74,168,255,.3)] backdrop-blur-sm [&:not(.hidden)]:flex sm:mt-6 sm:p-5">
+                    <h2 class="shrink-0 text-sm font-semibold tracking-widest text-[#bfe6ff]">WINNERS</h2>
 
                     <div
-                        class="mt-3 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                        class="mt-3 min-h-0 max-h-[13rem] flex-1 overflow-auto overscroll-contain [scrollbar-width:thin] [scrollbar-color:#5ad2ff_transparent]">
                         <table class="w-full min-w-[40rem] text-left text-sm">
-                            <thead>
+                            <thead class="sticky top-0 z-10 bg-[#1b0850]">
                                 <tr class="text-xs font-semibold tracking-wider text-purple-200">
                                     @foreach ($columns as $label)
                                         <th class="whitespace-nowrap px-3 py-2 sm:px-4">{{ $label }}</th>

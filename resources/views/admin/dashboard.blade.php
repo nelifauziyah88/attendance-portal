@@ -98,7 +98,7 @@
                     <p class="text-[11px] font-medium tracking-widest text-cyan-200">LIVE EVENT SUMMARY</p>
                     <h2 class="mt-2 break-words text-xl font-semibold tracking-tight sm:text-2xl">A clear view of every
                         guest.</h2>
-                    <p class="mt-2 text-sm font-light text-violet-100">Track RSVP responses and check-ins as they
+                    <p class="mt-2 text-sm font-light text-violet-100">Track confirmations and attendance as they
                         happen.
                     </p>
                 </section>
@@ -116,8 +116,8 @@
                 </section>
 
                 <div class="mt-8">
-                    <h2 class="text-lg font-semibold tracking-tight sm:text-xl">Attendance overview</h2>
-                    <p class="mt-1 text-xs text-slate-500">Live confirmation and check-in distribution</p>
+                    <h2 class="text-lg font-semibold tracking-tight sm:text-xl">Confirmation & Attendance Overview</h2>
+                    <p class="mt-1 text-xs text-slate-500">Live confirmation and attendance distribution</p>
                 </div>
 
                 <section class="mt-5 grid gap-4 sm:gap-6 lg:grid-cols-2">
