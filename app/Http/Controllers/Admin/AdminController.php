@@ -321,12 +321,13 @@ class AdminController extends Controller
             ->get([
                 'id',
                 'name',
+                'stock',
                 'current_stock',
             ])
             ->map(function (Prize $prize) {
                 return [
                     'name' => $prize->name,
-                    'stock' => $prize->current_stock,
+                    'stock' => $prize->stock,
                     'winner' => '-',
                     'badge' => '-',
                     'department' => '-',

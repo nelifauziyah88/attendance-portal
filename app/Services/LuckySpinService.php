@@ -35,7 +35,7 @@ class LuckySpinService
         return [
             'checkedIn' => MasterAttendance::whereHas('attendance')->count(),
             'winners' => $winners,
-            'winnerSlots' => Prize::sum('current_stock'),
+            'winnerSlots' => Prize::sum('stock'),
             'eligible' => $this->getEligibleParticipants()->count(),
         ];
     }
