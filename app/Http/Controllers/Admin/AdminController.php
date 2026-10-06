@@ -286,7 +286,6 @@ class AdminController extends Controller
                 $query->whereIn('badge_id', $departmentBadgeIds);
             })
 
-            ->when($search, fn ($query) => $query->where('badge_id', 'ilike', "%{$search}%"))
             ->when($department, fn ($query, $department) => $query->whereHas('user', function ($query) use ($department) {
                 $query->where('department', $department);
             }))
