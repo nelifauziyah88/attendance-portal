@@ -24,7 +24,7 @@
 @php
     $event = ['name' => ''];
 
-    $columns = ['NO.', 'BADGE ID', 'NAME', 'POSITION', 'DEPARTMENT', 'STATUS'];
+    $columns = ['NO.', 'BADGE ID', 'NAME', 'POSITION', 'DEPARTMENT', 'STATUS', 'CONFIRMED AT'];
 
     $statuses = [
         'attending' => ['label' => 'Attend', 'class' => 'bg-emerald-50 text-emerald-700'],
@@ -129,6 +129,9 @@
                                             <span
                                                 class="inline-flex items-center whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium transition duration-300 hover:scale-105 {{ $status['class'] }}">{{ $status['label'] }}</span>
                                         </td>
+                                        <td
+                                            class="whitespace-nowrap border-b border-slate-100 px-3 py-4 text-center sm:px-5 sm:py-8">
+                                            {{ $employee['confirmed_at'] }}</td>
                                     </tr>
                                 @empty
                                     <tr>

@@ -10,6 +10,7 @@ use App\Models\EventControl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AdminController extends Controller
 {
@@ -236,6 +237,9 @@ class AdminController extends Controller
                     'position' => $employee->position ?? '-',
                     'department' => $employee->department ?? '-',
                     'status' => $statusLabel,
+                    'confirmed_at' => $employee->rsvp_confirmed_at
+                        ? Carbon::parse($employee->rsvp_confirmed_at)->format('H:i:s - d M Y')
+                        : '-',
                 ];
             });
 
