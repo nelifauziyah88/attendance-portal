@@ -31,7 +31,7 @@
                 class="transition-transform duration-[6500ms] ease-[cubic-bezier(.12,.7,.12,1)] will-change-transform"
                 style="--slot: 0; transform: translateY(calc(var(--slot) * var(--h) * -1))">
                 @foreach ($items as $item)
-                    <li
+                    <li data-reel-item data-badge="{{ $item['badge'] }}"
                         class="flex h-[var(--h)] min-w-0 flex-col items-center justify-center gap-0.5 overflow-hidden px-3 text-center text-white sm:gap-1 sm:px-4">
                         <span
                             class="w-full truncate whitespace-nowrap font-semibold leading-tight tracking-tight {{ $config['name'] }}">{{ $item['name'] }}</span>

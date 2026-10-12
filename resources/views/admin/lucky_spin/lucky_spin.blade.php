@@ -211,8 +211,13 @@
         const LOOPS = 2;
         const CONFETTI_COLORS = ['#ffffff', '#e9b6ff', '#ff5fd2', '#5ad2ff', '#ffd666'];
 
-        const participants = JSON.parse(reel.dataset.participants);
-        const count = participants.length;
+        let participants = JSON.parse(reel.dataset.participants || '[]');
+
+        participants = participants.filter(participant => {
+            return participant.is_manager !== true;
+        });
+
+        let count = participants.length;
 
         let confettiTimer = null;
 
@@ -408,6 +413,16 @@
             strip.style.transition = '';
         };
 
+        const removeParticipantFromReel = (badge) => {
+            const items = reel.querySelectorAll('[data-reel-item]');
+
+            items.forEach((item) => {
+                if (item.dataset.badge === String(badge)) {
+                    item.remove();
+                }
+            });
+        };
+
         const renderHistory = () => {
             const rows = state.history.map((entry) => {
                 const row = template.content.firstElementChild.cloneNode(true);
@@ -427,13 +442,12 @@
         const begin = (data) => {
             state.current = data;
             state.slot = data.slot;
-
             setSpinning(true);
-            setResult(`DRAWING WINNER ${data.draw}`);
-            strip.style.transitionDuration = `${data.duration}s`;
+            setResult('DRAWING WINNER');
+            strip.style.transitionDuration =
+                `${data.duration}s`;
             moveTo(data.slot);
             startConfetti();
-
             save();
         };
 
@@ -470,6 +484,7 @@
                     winner,
                     draw: winner.draw,
                     stats: result.stats,
+                    participants: result.participants,
                     duration: state.duration,
                 };
 
@@ -487,27 +502,86 @@
         };
 
         const reveal = () => {
-            const { winner, draw, stats } = state.current;
+            if (!state.current) {
+                setSpinning(false);
+                return;
+            }
+
+            const {
+                winner,
+                draw,
+                stats,
+                participants: serverParticipants
+            } = state.current;
 
             const entry = {
                 draw,
                 ...winner
             };
 
-            setResult(`WINNER`, winner.name, `BADGE ID: ${winner.badge}`);
+            setResult(
+                'WINNER',
+                winner.name,
+                `BADGE ID: ${winner.badge}`
+            );
 
-            state.history = [entry, ...state.history.filter((item) => item.badge !== winner.badge)];
-            if (stats) applyStats(stats);
-            else {
-                state.winners += 1;
-                state.eligible = Math.max(0, state.eligible - 1);
-                setStat('winners', state.winners);
-                setStat('eligible', state.eligible);
+            participants = participants.filter(
+                (participant) =>
+                    String(participant.badge) !== String(winner.badge)
+            );
+
+            count = participants.length;
+
+            removeParticipantFromReel(winner.badge);
+
+            if (Array.isArray(serverParticipants)) {
+                participants = serverParticipants.filter(
+                    (participant) =>
+                        String(participant.badge) !== String(winner.badge)
+                );
+
+                count = participants.length;
             }
-            state.slot = count + (state.slot % count);
+
+            state.history = [
+                entry,
+                ...state.history.filter(
+                    (item) =>
+                        String(item.badge) !== String(winner.badge)
+                )
+            ];
+
+            if (stats) {
+                applyStats(stats);
+            } else {
+                state.winners += 1;
+                state.eligible = Math.max(
+                    0,
+                    state.eligible - 1
+                );
+                setStat(
+                    'winners',
+                    state.winners
+                );
+                setStat(
+                    'eligible',
+                    state.eligible
+                );
+            }
+
+            if (count > 0) {
+                state.slot = state.slot + 1;
+                state.slot = state.slot % count;
+            } else {
+                state.slot = 0;
+            }
+
             state.current = null;
 
-            jumpTo(state.slot);
+            if (count > 0) {
+                jumpTo(state.slot);
+            }
+
             renderHistory();
             setSpinning(false);
             stopConfetti();

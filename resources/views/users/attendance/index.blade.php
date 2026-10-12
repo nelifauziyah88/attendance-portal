@@ -80,7 +80,6 @@
                 </dl>
             </article>
 
-
             <div class="mx-auto mt-6 flex w-full max-w-xl flex-col gap-3 min-[480px]:flex-row min-[480px]:items-end">
                 <div class="flex-1">
                     <label for="badgeLookup" class="mb-2 block text-left text-sm font-medium">Employee Badge ID</label>
@@ -235,14 +234,12 @@
             const scheduleStatus = @json($scheduleStatus);
 
             @if ($scheduleStatus === 'upcoming')
-
                 const scheduleStart = new Date(
                     @json($eventControl->event_start->toIso8601String())
                 ).getTime();
 
                 const countdownElement =
                     document.getElementById('scheduleCountdown');
-
                 let countdownInterval = null;
                 let isReloading = false;
 
@@ -370,6 +367,7 @@
 
             function findEmployee() {
                 const badgeId = inputBadgeId.value.trim();
+                inputBadgeId.value = badgeId;
 
                 if (!badgeId) {
                     clearEmployee();

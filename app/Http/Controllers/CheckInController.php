@@ -36,6 +36,7 @@ class CheckInController extends Controller
 
     public function findEmployee(string $badgeId)
     {
+        $badgeId = trim($badgeId);
         $employee = MasterAttendance::where('badge_id', $badgeId)->first();
 
         if (! $employee) {
@@ -73,6 +74,7 @@ class CheckInController extends Controller
 
     public function store(Request $request)
     {
+        $request->merge(['badge_id' => trim($request->badge_id)]);
         $request->validate([
             'badge_id' => 'required|string',
         ], [

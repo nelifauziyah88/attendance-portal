@@ -17,6 +17,13 @@ class LuckySpinService
     {
         return MasterAttendance::query()
             ->whereHas('attendance')
+            ->where('is_manager', false)
+            ->whereNotIn(
+                'badge_id',
+                LuckySpin::query()
+                    ->select('badge_id')
+                    ->whereNotNull('badge_id')
+            )
             ->get(['badge_id', 'name', 'position', 'department', 'is_manager']);
     }
 
@@ -25,7 +32,7 @@ class LuckySpinService
         return MasterAttendance::query()
             ->whereHas('attendance')
             ->where('is_manager', false)
-            ->whereNotIn('badge_id', LuckySpin::query()->select('badge_id'));
+            ->whereNotIn('badge_id', LuckySpin::query()->select('badge_id')->whereNotNull('badge_id'));
     }
 
     public function getStatistics(): array
@@ -44,9 +51,15 @@ class LuckySpinService
      * Mengambil daftar ID Badge peserta yang sudah pernah menang Lucky Spin.
      */
     public function getExistingWinnerBadgeIds(): array
-    {
-        return LuckySpin::pluck('badge_id')->toArray();
-    }
+        {
+            return LuckySpin::query()
+                ->whereNotNull('badge_id')
+                ->pluck('badge_id')
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+        }
 
     /**
      * Mengambil hadiah aktif (stok > 0) teratas.

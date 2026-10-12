@@ -76,7 +76,7 @@
 
 <body
     class="h-screen h-dvh overflow-hidden bg-gradient-to-tr from-[#a0237c] via-[#5a1a85] to-[#2a0b5c] font-normal text-white antialiased [font-family:'Plus_Jakarta_Sans',ui-sans-serif,system-ui,sans-serif]"
-    data-display data-draw="{{ $draw }}" data-eligible="{{ $eligible }}"
+    data-display data-draw="{{ $draw }}" data-eligible="{{ $eligible }}" data-winner-slots="{{ $winnerSlots }}"
     data-history="{{ json_encode($recentWinners) }}" data-draw-url="{{ $drawUrl ?? '' }}"
     data-csrf-token="{{ $csrfToken ?? csrf_token() }}" data-intro-sound="{{ $sounds['intro'] }}"
     data-draw-sound="{{ $sounds['draw'] }}" data-winner-sound="{{ $sounds['winner'] }}">
@@ -185,8 +185,8 @@
         const MAX_RATE = 2;
         const CONFETTI_COLORS = ['#ffffff', '#e9b6ff', '#ff5fd2', '#5ad2ff', '#ffd666'];
 
-        const participants = JSON.parse(reel.dataset.participants);
-        const count = participants.length;
+        let participants = JSON.parse(reel.dataset.participants || '[]');
+        let count = participants.length;
 
         const introSound = new Audio(root.dataset.introSound);
         const drawSound = new Audio(root.dataset.drawSound);
@@ -399,6 +399,7 @@
 
         const state = {
             winners: Number(root.dataset.draw) - 1,
+            winnerSlots: Number(root.dataset.winnerSlots),
             eligible: Number(root.dataset.eligible),
             slot: count + ((saved.slot ?? 0) % Math.max(count, 1)),
             duration: clampDuration(saved.duration ?? MIN_DURATION),
@@ -420,7 +421,23 @@
 
         const setSpinning = (value) => {
             state.spinning = value;
-            triggers.forEach((trigger) => (trigger.disabled = value));
+
+            triggers.forEach((trigger) => {
+                trigger.disabled = value || state.winners >= state.winnerSlots || count <= 0;
+            });
+        };
+
+        const applyStats = (stats) => {
+            if (!stats) return;
+            state.winners = Number(stats.winners);
+            state.winnerSlots = Number(stats.winnerSlots);
+            state.eligible = Number(stats.eligible);
+        };
+
+        const setResult = (title, winnerName = '', winnerBadge = '') => {
+            name.textContent = winnerName;
+            badge.textContent = winnerBadge;
+            toggleOverlay(title === 'WINNER');
         };
 
         const toggleOverlay = (open) => {
@@ -436,6 +453,16 @@
             moveTo(slot);
             strip.getBoundingClientRect();
             strip.style.transition = '';
+        };
+
+        const removeParticipantFromReel = (badge) => {
+            const normalizedBadge = String(badge);
+
+            reel.querySelectorAll('[data-reel-item]').forEach((item) => {
+                if (String(item.dataset.badge) === normalizedBadge) {
+                    item.remove();
+                }
+            });
         };
 
         const renderHistory = () => {
@@ -469,7 +496,19 @@
         };
 
         const spin = async () => {
-            if (state.spinning || !count) return;
+            if (state.spinning || count <= 0) {
+                return;
+            }
+
+            if (state.winners >= state.winnerSlots) {
+                await Swal.fire({
+                    icon: 'info',
+                    title: 'Drawing selesai',
+                    text: 'Semua slot hadiah telah digunakan.',
+                });
+
+                return;
+            }
 
             setSpinning(true);
 
@@ -491,7 +530,9 @@
                 }
 
                 const winner = result.data;
-                const index = participants.findIndex((participant) => participant.badge === winner.badge);
+                const index = participants.findIndex((participant) =>
+                    String(participant.badge) === String(winner.badge)
+                );
                 if (index < 0) throw new Error('The selected participant is not in the checked-in list.');
 
                 const delta = (index - (state.slot % count) + count) % count;
@@ -501,6 +542,7 @@
                     winner,
                     draw: winner.draw,
                     stats: result.stats,
+                    participants: result.participants,
                     duration: state.duration,
                 };
 
@@ -518,10 +560,16 @@
         };
 
         const reveal = () => {
+            if (!state.current) {
+                setSpinning(false);
+                return;
+            }
+
             const {
                 winner,
                 draw,
-                stats
+                stats,
+                participants: serverParticipants
             } = state.current;
 
             const entry = {
@@ -529,19 +577,63 @@
                 ...winner
             };
 
-            name.textContent = winner.name;
-            badge.textContent = `BADGE ID: ${winner.badge}`;
+            setResult(
+                'WINNER',
+                winner.name,
+                `BADGE ID: ${winner.badge}`
+            );
 
-            state.history = [entry, ...state.history];
-            state.winners = stats?.winners ?? state.winners + 1;
-            state.eligible = stats?.eligible ?? Math.max(0, state.eligible - 1);
-            state.slot = count + (state.slot % count);
+            participants = participants.filter(
+                (participant) =>
+                    String(participant.badge) !== String(winner.badge)
+            );
+
+            count = participants.length;
+
+            removeParticipantFromReel(winner.badge);
+
+            if (Array.isArray(serverParticipants)) {
+                participants = serverParticipants.filter(
+                    (participant) =>
+                        String(participant.badge) !== String(winner.badge)
+                );
+
+                count = participants.length;
+            }
+
+            state.history = [
+                entry,
+                ...state.history.filter(
+                    (item) =>
+                        String(item.badge) !== String(winner.badge)
+                )
+            ];
+
+            if (stats) {
+                applyStats(stats);
+            } else {
+                state.winners += 1;
+                state.eligible = Math.max(
+                    0,
+                    state.eligible - 1
+                );
+            }
+
+            if (count > 0) {
+                state.slot = state.slot + 1;
+                state.slot = state.slot % count;
+            } else {
+                state.slot = 0;
+            }
+
             state.current = null;
 
-            jumpTo(state.slot);
+            if (count > 0) {
+                jumpTo(state.slot);
+            }
+
             renderHistory();
             setSpinning(false);
-            toggleOverlay(true);
             stopConfetti();
             fadeOut(drawSound);
             playWinner();
@@ -562,6 +654,7 @@
             save();
         };
 
+        setSpinning(false);
         jumpTo(state.slot);
         renderHistory();
 

@@ -66,7 +66,18 @@ class LuckySpinController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $winnerData,
-                'stats' => $this->luckySpinService->getStatistics(),
+                'stats' => $this->luckySpinService->getStatistics(),                
+                'participants' => $this->luckySpinService
+                    ->getParticipants()
+                    ->map(fn ($p) => [
+                        'badge' => $p->badge_id,
+                        'name' => $p->name,
+                        'position' => $p->position,
+                        'department' => $p->department,
+                        'is_manager' => (bool) $p->is_manager,
+                    ])
+                    ->values()
+                    ->all(),
             ]);
         } catch (Exception $e) {
             return response()->json([
