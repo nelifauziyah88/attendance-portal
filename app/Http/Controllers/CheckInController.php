@@ -34,8 +34,37 @@ class CheckInController extends Controller
         ]);
     }
 
+    private function validateEventSchedule()
+    {
+        $eventControl = EventControl::first();
+
+        if (!$eventControl || !$eventControl->event_start || !$eventControl->event_end) {
+            return 'Pengaturan jadwal acara belum dikonfigurasi.';
+        }
+
+        $now = Carbon::now();
+
+        if ($now->lt($eventControl->event_start)) {
+            return 'Acara belum dimulai. Check-in belum diizinkan.';
+        }
+
+        if ($now->gt($eventControl->event_end)) {
+            return 'Acara sudah selesai. Sesi check-in telah ditutup.';
+        }
+
+        return null;
+    }
+
     public function findEmployee(string $badgeId)
     {
+        $scheduleError = $this->validateEventSchedule();
+        if ($scheduleError) {
+            return response()->json([
+                'success' => false,
+                'message' => $scheduleError,
+            ], 403);
+        }
+
         $badgeId = trim($badgeId);
         $employee = MasterAttendance::where('badge_id', $badgeId)->first();
 
@@ -74,6 +103,14 @@ class CheckInController extends Controller
 
     public function store(Request $request)
     {
+        $scheduleError = $this->validateEventSchedule();
+        if ($scheduleError) {
+            return response()->json([
+                'success' => false,
+                'message' => $scheduleError,
+            ], 403);
+        }
+
         $request->merge(['badge_id' => trim($request->badge_id)]);
         $request->validate([
             'badge_id' => 'required|string',
