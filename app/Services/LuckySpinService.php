@@ -15,7 +15,7 @@ class LuckySpinService
      */
     public function getParticipants()
     {
-        MasterAttendance::query()
+        return MasterAttendance::query()
             ->whereHas('attendance')
             ->where('is_manager', false)
             ->whereNotIn(
@@ -24,7 +24,7 @@ class LuckySpinService
                     ->select('badge_id')
                     ->whereNotNull('badge_id')
             )
-            ->inRandomOrder()
+            // ->inRandomOrder()
             ->get(['badge_id', 'name', 'position', 'department', 'is_manager']);
     }
 
@@ -94,7 +94,7 @@ class LuckySpinService
 
             // Keep one canonical order so the reel index refers to the same participant.
             $eligibleCandidates = $this->getEligibleParticipants()
-                ->orderBy('badge_id')
+                // ->inRandomOrder()
                 ->get();
 
             if ($eligibleCandidates->isEmpty()) {
