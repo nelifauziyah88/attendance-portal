@@ -57,17 +57,20 @@ class LuckySpinController extends Controller
 
     public function draw(Request $request)
     {
-        try {
-            $participantBadges = $request->input('participant_badges');
-            if (!is_array($participantBadges)) {
-                throw new Exception('Daftar peserta tidak valid. Muat ulang halaman sebelum melakukan undian.');
-            }
+        $request->validate([
+            'participant_badges'   => 'required|array|min:1',
+            'participant_badges.*' => 'string',
+        ]);
 
-            $winnerData = $this->luckySpinService->drawWinner($participantBadges);
+        try {
+            $winner = $this->luckySpinService->drawWinner(
+                $request->input('participant_badges')
+            );
 
             return response()->json([
                 'success' => true,
-                'index' => $winnerData['index'],
+                'index'   => $winner['index'],
+                'stats'   => $this->luckySpinService->getStatistics(),
             ]);
         } catch (Exception $e) {
             return response()->json([

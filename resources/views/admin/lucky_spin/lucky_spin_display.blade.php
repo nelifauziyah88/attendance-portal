@@ -463,7 +463,6 @@
         };
 
         const toggleOverlay = (open) => {
-            console.log("tesst");
             overlay.classList.toggle('opacity-0', !open);
             overlay.classList.toggle('pointer-events-none', !open);
             card.classList.toggle('scale-90', !open);
@@ -479,6 +478,47 @@
             moveTo(slot);
             strip.getBoundingClientRect();
             strip.style.transition = '';
+        };
+
+        const shuffle = (arr) => {
+            const a = [...arr];
+            const buf = new Uint32Array(a.length);
+            crypto.getRandomValues(buf);
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = buf[i] % (i + 1);
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        };
+
+        // Susun ulang participants dan item di reel sesuai urutan badge
+        const applyOrder = (badges) => {
+            const byBadge = new Map(participants.map((p) => [String(p.badge), p]));
+            participants = badges.map((b) => byBadge.get(String(b))).filter(Boolean);
+
+            const items = [...reel.querySelectorAll('[data-reel-item]')];
+            if (!items.length) return;
+
+            const parent = items[0].parentElement;   // simpan dulu sebelum elemen dipindah
+
+            const groups = new Map();
+            items.forEach((el) => {
+                const key = String(el.dataset.badge);
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key).push(el);
+            });
+
+            const copies = Math.max(...[...groups.values()].map((g) => g.length));
+            const fragment = document.createDocumentFragment();
+
+            for (let c = 0; c < copies; c++) {
+                participants.forEach((p) => {
+                    const el = groups.get(String(p.badge))?.[c];
+                    if (el) fragment.appendChild(el);
+                });
+            }
+
+            parent.appendChild(fragment);
         };
 
         const removeParticipantFromReel = (badge) => {
@@ -504,6 +544,11 @@
         };
 
         const begin = (data) => {
+            if (data.order) {                 // baru
+            applyOrder(data.order);
+            count = participants.length;
+            jumpTo(data.startSlot);
+        }
             state.current = data;
             state.slot = data.slot;
 
@@ -540,6 +585,8 @@
             setSpinning(true);
 
             try {
+                const order = shuffle(participants.map((p) => String(p.badge)));
+
                 const response = await fetch(root.dataset.drawUrl, {
                     method: 'POST',
                     headers: {
@@ -548,7 +595,7 @@
                         'X-CSRF-TOKEN': root.dataset.csrfToken,
                         'X-Requested-With': 'XMLHttpRequest',
                     },
-                    body: JSON.stringify({ participant_badges: participants.map((participant) => participant.badge) }),
+                    body: JSON.stringify({ participant_badges: order }),
                 });
                 const result = await response.json();
 
@@ -557,16 +604,21 @@
                 }
 
                 const index = Number(result.index);
-                if (!Number.isInteger(index) || !participants[index]) {
+                if (!Number.isInteger(index) || !order[index]) {
                     throw new Error('The draw index does not match the participant reel. Refresh the page and try again.');
                 }
 
-                const winner = { ...participants[index], draw: state.winners + 1 };
+                const found = participants.find((p) => String(p.badge) === order[index]);
+                const winner = { ...found, draw: state.winners + 1 };
 
-                const delta = (index - (state.slot % count) + count) % count;
+                const start = count + Math.floor(Math.random() * count);   // titik awal acak
+                const delta = (index - (start % count) + count) % count;
+
                 const data = {
                     type: 'spin',
-                    slot: state.slot + LOOPS * count + delta,
+                    order,
+                    startSlot: start,
+                    slot: start + LOOPS * count + delta,
                     winner,
                     draw: winner.draw,
                     duration: state.duration,

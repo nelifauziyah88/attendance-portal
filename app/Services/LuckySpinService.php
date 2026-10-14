@@ -102,23 +102,30 @@ class LuckySpinService
             }
 
             if ($expectedBadges !== null) {
-                $expectedBadges = array_map('strval', $expectedBadges);
-                $currentBadges = $eligibleCandidates
-                    ->pluck('badge_id')
-                    ->map(fn ($badge) => (string) $badge)
-                    ->values()
-                    ->all();
+                $expected = array_map('strval', $expectedBadges);
+                $current = $eligibleCandidates->pluck('badge_id')->map(fn ($b) => (string) $b)->all();
 
-                if ($expectedBadges !== $currentBadges) {
+                $a = $expected;
+                $b = $current;
+                sort($a);
+                sort($b);
+
+                // Cek sebagai himpunan, urutan boleh beda (urutan diacak di browser)
+                if ($a !== $b) {
                     throw new Exception('Daftar peserta berubah. Muat ulang halaman sebelum melakukan undian.');
                 }
+
+                $order = $expected;
+            } else {
+                $order = $eligibleCandidates->pluck('badge_id')->map(fn ($b) => (string) $b)->all();
             }
 
-            // Pilih Pemenang Secara Acak
-            $winner = $eligibleCandidates->random();
-            $winnerIndex = $eligibleCandidates->search(
-                fn ($candidate) => (string) $candidate->badge_id === (string) $winner->badge_id
-            );
+            // Pilih pemenang secara acak
+            $candidates = $eligibleCandidates->values();
+            $winner = $candidates->get(random_int(0, $candidates->count() - 1));
+
+            // Index mengacu ke urutan yang dikirim browser
+            $winnerIndex = array_search((string) $winner->badge_id, $expectedBadges, true);
 
             // Simpan Record Pemenang
             $luckySpin = LuckySpin::create([
