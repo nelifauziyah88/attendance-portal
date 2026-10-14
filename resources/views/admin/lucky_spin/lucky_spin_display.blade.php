@@ -163,6 +163,11 @@
     <script>
         const root = document.querySelector('[data-display]');
         const reel = document.querySelector('[data-reel]');
+
+        if (reel) {
+            reel.classList.add('transition-all', 'duration-700', 'opacity-0', 'blur-2xl', 'pointer-events-none');
+        }
+
         const strip = document.querySelector('[data-strip]');
         const triggers = document.querySelectorAll('[data-spin]');
         const overlay = document.querySelector('[data-overlay]');
@@ -434,16 +439,37 @@
             state.eligible = Number(stats.eligible);
         };
 
+        const setReelVisibility = (visible) => {
+            if (!reel) return;
+            if (visible) {
+                reel.classList.remove('opacity-0', 'blur-2xl', 'pointer-events-none');
+                reel.classList.add('opacity-100', 'blur-none');
+            } else {
+                reel.classList.add('opacity-0', 'blur-2xl', 'pointer-events-none');
+                reel.classList.remove('opacity-100', 'blur-none');
+            }
+        };
+
         const setResult = (title, winnerName = '', winnerBadge = '') => {
             name.textContent = winnerName;
             badge.textContent = winnerBadge;
             toggleOverlay(title === 'WINNER');
         };
 
+        const showNext = () => {
+            setResult('READY TO DRAW', '', '');
+            setReelVisibility(false);
+
+        };
+
         const toggleOverlay = (open) => {
+            console.log("tesst");
             overlay.classList.toggle('opacity-0', !open);
             overlay.classList.toggle('pointer-events-none', !open);
             card.classList.toggle('scale-90', !open);
+            if (open) {
+                setReelVisibility(false);
+            }
         };
 
         const moveTo = (slot) => strip.style.setProperty('--slot', slot);
@@ -483,6 +509,7 @@
 
             setSpinning(true);
             toggleOverlay(false);
+            setReelVisibility(true);
             strip.style.transitionDuration = `${data.duration}s`;
             moveTo(data.slot);
             startConfetti();
@@ -521,19 +548,20 @@
                         'X-CSRF-TOKEN': root.dataset.csrfToken,
                         'X-Requested-With': 'XMLHttpRequest',
                     },
-                    body: JSON.stringify({}),
+                    body: JSON.stringify({ participant_badges: participants.map((participant) => participant.badge) }),
                 });
                 const result = await response.json();
 
-                if (!response.ok || !result.success) {
+                if (!response.ok) {
                     throw new Error(result.message || 'The draw could not be completed.');
                 }
 
-                const winner = result.data;
-                const index = participants.findIndex((participant) =>
-                    String(participant.badge) === String(winner.badge)
-                );
-                if (index < 0) throw new Error('The selected participant is not in the checked-in list.');
+                const index = Number(result.index);
+                if (!Number.isInteger(index) || !participants[index]) {
+                    throw new Error('The draw index does not match the participant reel. Refresh the page and try again.');
+                }
+
+                const winner = { ...participants[index], draw: state.winners + 1 };
 
                 const delta = (index - (state.slot % count) + count) % count;
                 const data = {
@@ -541,8 +569,6 @@
                     slot: state.slot + LOOPS * count + delta,
                     winner,
                     draw: winner.draw,
-                    stats: result.stats,
-                    participants: result.participants,
                     duration: state.duration,
                 };
 
@@ -569,7 +595,7 @@
                 winner,
                 draw,
                 stats,
-                participants: serverParticipants
+                // participants: serverParticipants
             } = state.current;
 
             const entry = {
@@ -583,6 +609,10 @@
                 `BADGE ID: ${winner.badge}`
             );
 
+            const winnerIndex = participants.findIndex(
+                (participant) => String(participant.badge) === String(winner.badge)
+            );
+
             participants = participants.filter(
                 (participant) =>
                     String(participant.badge) !== String(winner.badge)
@@ -592,14 +622,14 @@
 
             removeParticipantFromReel(winner.badge);
 
-            if (Array.isArray(serverParticipants)) {
-                participants = serverParticipants.filter(
-                    (participant) =>
-                        String(participant.badge) !== String(winner.badge)
-                );
+            // if (Array.isArray(serverParticipants)) {
+            //     participants = serverParticipants.filter(
+            //         (participant) =>
+            //             String(participant.badge) !== String(winner.badge)
+            //     );
 
-                count = participants.length;
-            }
+            //     count = participants.length;
+            // }
 
             state.history = [
                 entry,
@@ -620,8 +650,7 @@
             }
 
             if (count > 0) {
-                state.slot = state.slot + 1;
-                state.slot = state.slot % count;
+                state.slot = (winnerIndex >= 0 ? winnerIndex : 0) % count;
             } else {
                 state.slot = 0;
             }
@@ -687,7 +716,14 @@
         });
 
         strip.addEventListener('transitionend', (event) => {
-            if (event.target === strip && event.propertyName === 'transform' && state.spinning) reveal();
+            if (event.target === strip && event.propertyName === 'transform' && state.spinning) {
+                if (reel) {
+                    reel.style.transition = 'none';
+                    reel.classList.add('opacity-0', 'blur-2xl', 'pointer-events-none');
+                    reel.classList.remove('opacity-100', 'blur-none');
+                }
+                reveal();
+            }
         });
 
         overlay.addEventListener('click', () => {

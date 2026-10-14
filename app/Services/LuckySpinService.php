@@ -15,7 +15,7 @@ class LuckySpinService
      */
     public function getParticipants()
     {
-        return MasterAttendance::query()
+        MasterAttendance::query()
             ->whereHas('attendance')
             ->where('is_manager', false)
             ->whereNotIn(
@@ -24,6 +24,7 @@ class LuckySpinService
                     ->select('badge_id')
                     ->whereNotNull('badge_id')
             )
+            ->inRandomOrder()
             ->get(['badge_id', 'name', 'position', 'department', 'is_manager']);
     }
 
@@ -82,23 +83,42 @@ class LuckySpinService
     /**
      * Proses Spin Pemenang (Acak dari kandidat non-manager yang eligible).
      */
-    public function drawWinner(): array
+    public function drawWinner(?array $expectedBadges = null): array
     {
-        return DB::transaction(function () {
+        return DB::transaction(function () use ($expectedBadges) {
             $stats = $this->getStatistics();
 
             if ($stats['winners'] >= $stats['winnerSlots']) {
                 throw new Exception('Semua slot hadiah telah digunakan. Tidak ada drawing tersisa.');
             }
 
-            $eligibleCandidates = $this->getEligibleParticipants()->get();
+            // Keep one canonical order so the reel index refers to the same participant.
+            $eligibleCandidates = $this->getEligibleParticipants()
+                ->orderBy('badge_id')
+                ->get();
 
             if ($eligibleCandidates->isEmpty()) {
                 throw new Exception('Tidak ada peserta eligible yang tersisa.');
             }
 
+            if ($expectedBadges !== null) {
+                $expectedBadges = array_map('strval', $expectedBadges);
+                $currentBadges = $eligibleCandidates
+                    ->pluck('badge_id')
+                    ->map(fn ($badge) => (string) $badge)
+                    ->values()
+                    ->all();
+
+                if ($expectedBadges !== $currentBadges) {
+                    throw new Exception('Daftar peserta berubah. Muat ulang halaman sebelum melakukan undian.');
+                }
+            }
+
             // Pilih Pemenang Secara Acak
             $winner = $eligibleCandidates->random();
+            $winnerIndex = $eligibleCandidates->search(
+                fn ($candidate) => (string) $candidate->badge_id === (string) $winner->badge_id
+            );
 
             // Simpan Record Pemenang
             $luckySpin = LuckySpin::create([
@@ -114,6 +134,7 @@ class LuckySpinService
                 'name' => $winner->name,
                 'position' => $winner->position,
                 'department' => $winner->department,
+                'index' => $winnerIndex,
             ];
         });
     }

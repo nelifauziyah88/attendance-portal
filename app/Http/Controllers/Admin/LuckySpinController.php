@@ -55,29 +55,19 @@ class LuckySpinController extends Controller
         ]);
     }
 
-    /**
-     * Endpoint AJAX: Mengundi Pemenang Baru dari Backend
-     */
-    public function draw()
+    public function draw(Request $request)
     {
         try {
-            $winnerData = $this->luckySpinService->drawWinner();
+            $participantBadges = $request->input('participant_badges');
+            if (!is_array($participantBadges)) {
+                throw new Exception('Daftar peserta tidak valid. Muat ulang halaman sebelum melakukan undian.');
+            }
+
+            $winnerData = $this->luckySpinService->drawWinner($participantBadges);
 
             return response()->json([
                 'success' => true,
-                'data' => $winnerData,
-                'stats' => $this->luckySpinService->getStatistics(),                
-                'participants' => $this->luckySpinService
-                    ->getParticipants()
-                    ->map(fn ($p) => [
-                        'badge' => $p->badge_id,
-                        'name' => $p->name,
-                        'position' => $p->position,
-                        'department' => $p->department,
-                        'is_manager' => (bool) $p->is_manager,
-                    ])
-                    ->values()
-                    ->all(),
+                'index' => $winnerData['index'],
             ]);
         } catch (Exception $e) {
             return response()->json([

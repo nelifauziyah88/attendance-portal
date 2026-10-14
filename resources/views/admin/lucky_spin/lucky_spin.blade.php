@@ -36,7 +36,6 @@
 @php
     $checkedIn = $checkedIn ?? 0;
     $winners = $winners ?? 0;
-    $winnerSlots = $winnerSlots ?? 0;
     $eligible = $eligible ?? 0;
 
     $displayUrl = $displayUrl ?? url('/admin/lucky-spin/display');
@@ -105,8 +104,8 @@
                     class="relative mt-6 min-w-0 overflow-hidden rounded-2xl border-2 border-[#5ad2ff]/70 bg-gradient-to-tr from-[#a0237c] via-[#5a1a85] to-[#2a0b5c] px-4 py-6 shadow-[0_0_32px_rgba(74,168,255,.45)] sm:px-10 sm:py-8 [animation:rise_.7s_.4s_ease-out_both]">
                     <div class="{{ $stars }} pointer-events-none absolute inset-0"></div>
 
-                    <div class="relative mb-3 text-center sm:mb-4">
-                        <p data-result-note class="break-words text-xs font-medium tracking-widest text-purple-200"></p>
+                    <div class="relative text-center">
+                        <p data-result-note class="break-words text-5xl font-medium tracking-widest text-purple-200"></p>
                         <p data-result-name
                             class="mt-1.5 break-words text-lg font-semibold leading-tight tracking-tight text-white empty:hidden sm:text-2xl">
                         </p>
@@ -115,7 +114,9 @@
                         </p>
                     </div>
 
-                    <x-admin.reel :participants="$participants" size="md" class="mx-auto max-w-3xl" />
+                    <div class="pointer-events-none absolute left-0 top-0 h-0 w-full overflow-hidden opacity-0" aria-hidden="true">
+                        <x-admin.reel :participants="$participants" size="md" class="mx-auto max-w-3xl" />
+                    </div>
                 </section>
 
                 <section class="mt-6 flex flex-col items-center gap-4">
@@ -132,12 +133,8 @@
                     </div>
 
                     <div class="flex w-full max-w-md flex-wrap justify-center gap-3">
-                        <button type="button" data-spin @disabled($winners >= $winnerSlots)
-                            class="flex h-12 min-w-[10rem] flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-[#c02a9c] to-[#6a2fe0] px-6 text-sm font-medium text-white shadow-lg shadow-fuchsia-400/40 transition duration-300 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-xl hover:shadow-fuchsia-400/50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-60">
-                            Draw Winner
-                        </button>
                         <a href="{{ $displayUrl }}" target="_blank" rel="noopener"
-                            class="flex h-12 min-w-[10rem] flex-1 items-center justify-center rounded-xl border-2 border-purple-200 bg-white px-6 text-sm font-medium text-[#7a2cc0] transition duration-300 hover:-translate-y-0.5 hover:border-[#7a2cc0] hover:shadow-lg hover:shadow-purple-100 active:scale-[.98]">
+                            class="flex h-12 min-w-[10rem] flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-[#c02a9c] to-[#6a2fe0] px-6 text-sm font-medium text-white shadow-lg shadow-fuchsia-400/40 transition duration-300 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-xl hover:shadow-fuchsia-400/50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-60">
                             Open Display
                         </a>
                         <button type="button" data-forfeit
@@ -157,14 +154,14 @@
                         </button>
                     </div>
 
-                    <div class="mt-4 overflow-x-auto overscroll-x-contain">
+                    <div class="mt-4 max-h-[31rem] overflow-auto overscroll-contain">
                         <table class="w-full min-w-[40rem] text-left text-sm">
                             <thead>
-                                <tr class="bg-purple-50/80 text-xs font-semibold text-[#2a0b5c]">
+                                <tr class="text-xs font-semibold text-[#2a0b5c]">
                                     @foreach ($columns as $label)
-                                        <th class="whitespace-nowrap px-3 py-3 sm:px-4">{{ $label }}</th>
+                                        <th class="sticky top-0 z-10 whitespace-nowrap bg-purple-50 px-3 py-3 sm:px-4">{{ $label }}</th>
                                     @endforeach
-                                    <th class="whitespace-nowrap px-3 py-3 sm:px-4">Action</th>
+                                    <th class="sticky top-0 z-10 whitespace-nowrap bg-purple-50 px-3 py-3 sm:px-4">Action</th>
                                 </tr>
                             </thead>
                             <tbody data-winner-list class="divide-y divide-purple-100"></tbody>
@@ -193,6 +190,11 @@
     <script>
         const root = document.querySelector('[data-draw]');
         const reel = document.querySelector('[data-reel]');
+
+        if (reel) {
+            reel.classList.add('transition-all', 'duration-700', 'opacity-0', 'blur-2xl', 'pointer-events-none');
+        }
+
         const strip = document.querySelector('[data-strip]');
         const triggers = document.querySelectorAll('[data-spin]');
         const forfeitButton = document.querySelector('[data-forfeit]');
@@ -435,14 +437,27 @@
             list.replaceChildren(...rows);
         };
 
+        const setReelVisibility = (visible) => {
+            if (!reel) return;
+            if (visible) {
+                reel.classList.remove('opacity-0', 'blur-2xl', 'pointer-events-none');
+                reel.classList.add('opacity-100', 'blur-none');
+            } else {
+                reel.classList.add('opacity-0', 'blur-2xl', 'pointer-events-none');
+                reel.classList.remove('opacity-100', 'blur-none');
+            }
+        };
+
         const showNext = () => {
-            setResult('READY TO DRAW');
+            setResult('READY TO DRAW', '', '');
+            setReelVisibility(false);
         };
 
         const begin = (data) => {
             state.current = data;
             state.slot = data.slot;
             setSpinning(true);
+            setReelVisibility(true);
             setResult('DRAWING WINNER');
             strip.style.transitionDuration =
                 `${data.duration}s`;
@@ -465,17 +480,20 @@
                         'X-CSRF-TOKEN': root.dataset.csrfToken,
                         'X-Requested-With': 'XMLHttpRequest',
                     },
-                    body: JSON.stringify({}),
+                    body: JSON.stringify({ participant_badges: participants.map((participant) => participant.badge) }),
                 });
                 const result = await response.json();
 
-                if (!response.ok || !result.success) {
+                if (!response.ok) {
                     throw new Error(result.message || 'The draw could not be completed.');
                 }
 
-                const winner = result.data;
-                const index = participants.findIndex((participant) => participant.badge === winner.badge);
-                if (index < 0) throw new Error('The selected participant is not in the checked-in list.');
+                const index = Number(result.index);
+                if (!Number.isInteger(index) || !participants[index]) {
+                    throw new Error('The draw index does not match the participant reel. Refresh the page and try again.');
+                }
+
+                const winner = { ...participants[index], draw: state.winners + 1 };
 
                 const delta = (index - (state.slot % count) + count) % count;
                 const data = {
@@ -483,8 +501,6 @@
                     slot: state.slot + LOOPS * count + delta,
                     winner,
                     draw: winner.draw,
-                    stats: result.stats,
-                    participants: result.participants,
                     duration: state.duration,
                 };
 
@@ -511,7 +527,7 @@
                 winner,
                 draw,
                 stats,
-                participants: serverParticipants
+                // participants: serverParticipants
             } = state.current;
 
             const entry = {
@@ -525,6 +541,10 @@
                 `BADGE ID: ${winner.badge}`
             );
 
+            const winnerIndex = participants.findIndex(
+                (participant) => String(participant.badge) === String(winner.badge)
+            );
+
             participants = participants.filter(
                 (participant) =>
                     String(participant.badge) !== String(winner.badge)
@@ -534,14 +554,14 @@
 
             removeParticipantFromReel(winner.badge);
 
-            if (Array.isArray(serverParticipants)) {
-                participants = serverParticipants.filter(
-                    (participant) =>
-                        String(participant.badge) !== String(winner.badge)
-                );
+            // if (Array.isArray(serverParticipants)) {
+            //     participants = serverParticipants.filter(
+            //         (participant) =>
+            //             String(participant.badge) !== String(winner.badge)
+            //     );
 
-                count = participants.length;
-            }
+            //     count = participants.length;
+            // }
 
             state.history = [
                 entry,
@@ -570,8 +590,7 @@
             }
 
             if (count > 0) {
-                state.slot = state.slot + 1;
-                state.slot = state.slot % count;
+                state.slot = (winnerIndex >= 0 ? winnerIndex : 0) % count;
             } else {
                 state.slot = 0;
             }
@@ -583,6 +602,7 @@
             }
 
             renderHistory();
+            showNext();
             setSpinning(false);
             stopConfetti();
             celebrate();
