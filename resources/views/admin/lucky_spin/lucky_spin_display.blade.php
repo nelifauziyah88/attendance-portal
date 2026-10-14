@@ -188,6 +188,8 @@
         const INTRO_VOLUME = 0.7;
         const MIN_RATE = 0.5;
         const MAX_RATE = 2;
+        const TAIL_SECONDS = 4;
+        const MAX_TAIL_RATIO = 0.6;
         const CONFETTI_COLORS = ['#ffffff', '#e9b6ff', '#ff5fd2', '#5ad2ff', '#ffd666'];
 
         let participants = JSON.parse(reel.dataset.participants || '[]');
@@ -400,6 +402,11 @@
             return Math.min(MAX_DURATION, Math.max(MIN_DURATION, seconds));
         };
 
+        const easingFor = (seconds) => {
+            const tail = Math.min(MAX_TAIL_RATIO, TAIL_SECONDS / Math.max(seconds, 1));
+            return `cubic-bezier(0.2, 0.4, ${(1 - tail).toFixed(3)}, 1)`;
+        };
+
         const saved = load();
 
         const state = {
@@ -556,6 +563,7 @@
             toggleOverlay(false);
             setReelVisibility(true);
             strip.style.transitionDuration = `${data.duration}s`;
+            strip.style.transitionTimingFunction = easingFor(data.duration);
             moveTo(data.slot);
             startConfetti();
 
