@@ -119,6 +119,24 @@ class LuckySpinController extends Controller
         }
     }
 
+    public function resetDrawings()
+    {
+        try {
+            $this->luckySpinService->resetDrawings();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Semua riwayat drawing berhasil direset. Check-in tetap tersimpan.',
+                'stats' => $this->luckySpinService->getStatistics(),
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
     /**
      * Tampilan Terpisah untuk Layar Besar / Projector Display (Opsional)
      */

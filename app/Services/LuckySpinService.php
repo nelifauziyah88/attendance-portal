@@ -166,4 +166,11 @@ class LuckySpinService
             LuckySpin::activeWinner()->where('badge_id', $badgeId)->firstOrFail()->delete();
         });
     }
+
+    public function resetDrawings(): void
+    {
+        DB::transaction(function () {
+            LuckySpin::query()->delete();
+        });
+    }
 }

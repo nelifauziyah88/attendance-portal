@@ -77,6 +77,7 @@
                 data-draw-url="{{ route('admin.lucky-spin.draw') }}"
                 data-forfeit-url-template="{{ route('admin.lucky-spin.forfeit', ['badge' => 'BADGE_PLACEHOLDER']) }}"
                 data-remove-url-template="{{ route('admin.lucky-spin.remove', ['badge' => 'BADGE_PLACEHOLDER']) }}"
+                data-reset-drawings-url="{{ route('admin.lucky-spin.reset-drawings') }}"
                 data-csrf-token="{{ csrf_token() }}">
                 <div class="flex flex-wrap items-start justify-between gap-4 [animation:rise_.7s_ease-out_both]">
                     <div class="min-w-0">
@@ -150,9 +151,9 @@
                         <h2 class="text-lg font-semibold tracking-tight sm:text-xl">Winners</h2>
 
                         <div class="flex flex-wrap gap-2">
-                            <button type="button" data-remove-all
-                                class="hidden h-9 items-center justify-center rounded-lg border border-sky-200 bg-white px-4 text-xs font-medium text-sky-700 transition duration-300 hover:border-sky-400 hover:bg-sky-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
-                                Reset All
+                            <button type="button" data-remove-all title="Reset all lucky draw history and make checked-in participants eligible again"
+                                class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border-2 border-rose-700 bg-rose-600 px-5 text-sm font-bold text-white shadow-lg shadow-rose-300/70 transition duration-200 hover:-translate-y-0.5 hover:bg-rose-700 hover:shadow-xl hover:shadow-rose-400/70 active:scale-[.97] disabled:pointer-events-none disabled:opacity-50">
+                                <span aria-hidden="true">↻</span> Reset Drawing
                             </button>
                             <button type="button" data-forfeit-all
                                 class="hidden h-9 items-center justify-center rounded-lg border border-amber-200 bg-white px-4 text-xs font-medium text-amber-700 transition duration-300 hover:border-amber-400 hover:bg-amber-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
@@ -357,8 +358,6 @@
 
         const syncRemoveAll = () => {
             const visible = state.history.length > 0;
-            removeAllButton.classList.toggle('hidden', !visible);
-            removeAllButton.classList.toggle('inline-flex', visible);
             removeAllButton.disabled = state.spinning;
             forfeitAllButton.classList.toggle('hidden', !visible);
             forfeitAllButton.classList.toggle('inline-flex', visible);
@@ -426,6 +425,24 @@
 
             if (!response.ok || !result.success) {
                 throw new Error(result.message || 'Winner could not be removed.');
+            }
+
+            return result;
+        };
+
+        const resetAllDrawings = async () => {
+            const response = await fetch(root.dataset.resetDrawingsUrl, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': root.dataset.csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'Drawing could not be reset.');
             }
 
             return result;
@@ -728,41 +745,41 @@
         };
 
         const removeAll = async () => {
-            if (state.spinning || !state.history.length) return;
+            if (state.spinning) return;
 
             const confirmation = await Swal.fire({
-                title: `Remove all ${state.history.length} winners?`,
-                text: 'Winner records will be deleted. Check-ins will remain, and participants will return to the eligible list.',
-                icon: 'warning',
+                title: 'Reset lucky drawing from the beginning?',
+                text: 'All drawing records will be permanently deleted, including active winners and forfeited entries. Check-in data will stay unchanged. After reset, every checked-in non-manager participant will be eligible to draw again.',
+                icon: 'error',
                 showCancelButton: true,
-                confirmButtonText: 'Yes, remove all',
-                confirmButtonColor: '#0284c7',
+                confirmButtonText: 'Yes, reset all drawings',
+                confirmButtonColor: '#be123c',
                 cancelButtonText: 'Cancel',
                 reverseButtons: true,
-                focusCancel: true
+                focusCancel: true,
             });
 
             if (!confirmation.isConfirmed) return;
-            if (state.spinning || !state.history.length) return;
+            if (state.spinning) return;
 
-            const removed = [...state.history];
             setSpinning(true);
 
             try {
-                let result;
-                for (const entry of removed) {
-                    result = await removeWinnerRecord(entry.badge);
-                }
+                const result = await resetAllDrawings();
 
                 state.history = [];
                 applyStats(result.stats);
-                setResult('ALL WINNERS REMOVED - ELIGIBLE AGAIN');
+                setResult('DRAWING RESET - ELIGIBLE TO DRAW AGAIN');
                 channel?.postMessage({ type: 'refresh' });
-                await Swal.fire({ icon: 'success', title: 'All winners removed', text: 'Check-ins are unchanged and all participants are eligible to spin again.' });
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Drawing reset complete',
+                    text: `All drawing records were deleted. Check-ins remain saved; ${Number(result.stats.eligible).toLocaleString()} checked-in non-manager participants are now eligible to draw again.`,
+                    confirmButtonColor: '#7a2cc0',
+                });
                 window.location.reload();
             } catch (error) {
-                await Swal.fire({ icon: 'error', title: 'Unable to remove all winners', text: error.message });
-                window.location.reload();
+                await Swal.fire({ icon: 'error', title: 'Drawing was not reset', text: error.message });
             } finally {
                 setSpinning(false);
             }
