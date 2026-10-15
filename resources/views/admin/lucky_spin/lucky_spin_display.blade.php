@@ -109,7 +109,8 @@
                     class="mt-1 shrink-0 break-words text-2xl font-semibold tracking-tight min-[400px]:text-3xl sm:text-4xl lg:text-5xl">
                     Who will be our next lucky winner?</h1>
 
-                <x-admin.reel :participants="$participants" size="lg" class="mx-auto mt-4 max-w-5xl shrink-0 sm:mt-6" />
+                <x-admin.reel :participants="$participants" size="lg"
+                    class="mx-auto mt-4 max-w-5xl shrink-0 opacity-0 blur-2xl pointer-events-none transition-all duration-700 sm:mt-6" />
 
                 <button type="button" data-spin
                     class="mt-5 flex h-12 w-full max-w-xs shrink-0 items-center justify-center rounded-xl bg-white px-10 text-sm font-semibold text-[#7a2cc0] shadow-lg shadow-[#2a0b5c]/40 transition duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-fuchsia-500/40 active:scale-[.98] disabled:pointer-events-none disabled:opacity-60 sm:mt-6 sm:w-auto sm:max-w-none">
@@ -182,8 +183,21 @@
         const STORAGE_KEY = 'lucky-spin-state';
         const MIN_DURATION = 10;
         const MAX_DURATION = 60;
-        const BASE_LOOPS = 2;
-        const SPIN_EASING = 'cubic-bezier(0.2, 0.24, 0.42, 1)';
+        const SLOTS_PER_SECOND = 8;
+        const END_POWER = 2.4;
+        const SPIN_EASING = 'cubic-bezier(0.1, 0.6, 0.25, 1)';
+
+        const spinEasing = () => {
+            if (!window.CSS?.supports?.('transition-timing-function', 'linear(0, 1)')) return SPIN_EASING;
+
+            const points = [];
+            for (let i = 0; i <= 200; i++) {
+                points.push((1 - Math.pow(1 - i / 200, END_POWER)).toFixed(4));
+            }
+
+            return `linear(${points.join(', ')})`;
+        };
+
         const FADE_DURATION = 1200;
         const FADE_INTERVAL = 50;
         const INTRO_VOLUME = 0.7;
@@ -428,9 +442,7 @@
         const setSpinning = (value) => {
             state.spinning = value;
 
-            triggers.forEach((trigger) => {
-                trigger.disabled = value || state.winners >= state.winnerSlots || count <= 0;
-            });
+            triggers.forEach((trigger) => {trigger.disabled = value;});
         };
 
         const applyStats = (stats) => {
@@ -559,7 +571,7 @@
             setSpinning(true);
             toggleOverlay(false);
             setReelVisibility(true);
-            strip.style.transitionTimingFunction = SPIN_EASING;
+            strip.style.transitionTimingFunction = spinEasing();
             strip.style.transitionDuration = `${data.duration}s`;
             moveTo(data.slot);
             startConfetti();
@@ -577,15 +589,15 @@
                 return;
             }
 
-            if (state.winners >= state.winnerSlots) {
-                await Swal.fire({
-                    icon: 'info',
-                    title: 'Drawing selesai',
-                    text: 'Semua slot hadiah telah digunakan.',
-                });
+            // if (state.winners >= state.winnerSlots) {
+            //     await Swal.fire({
+            //         icon: 'info',
+            //         title: 'Drawing selesai',
+            //         text: 'Semua slot hadiah telah digunakan.',
+            //     });
 
-                return;
-            }
+            //     return;
+            // }
 
             setSpinning(true);
 
@@ -616,12 +628,9 @@
                 const found = participants.find((p) => String(p.badge) === order[index]);
                 const winner = { ...found, draw: state.winners + 1 };
 
-                const start = count + Math.floor(Math.random() * count);   // titik awal acak
-                const delta = (index - (start % count) + count) % count;
-                const baseDistance = BASE_LOOPS * count + delta;
-                const targetDistance = baseDistance * state.duration / MIN_DURATION;
-                const loops = Math.max(BASE_LOOPS, Math.round((targetDistance - delta) / count));
-                const slot = start + loops * count + delta;
+                const distance = Math.round(state.duration * SLOTS_PER_SECOND);
+                const start = count + ((((index - distance) % count) + count) % count);
+                const slot = start + distance;
                 const requiredCopies = Math.ceil((slot + 1) / count);
 
                 const data = {
@@ -771,7 +780,7 @@
         document.addEventListener('keydown', unlockAudio, true);
 
         triggers.forEach((trigger) => trigger.addEventListener('click', async () => {
-            if (state.spinning || count <= 0 || state.winners >= state.winnerSlots) return;
+            if (state.spinning || count <= 0) return;
 
             const originalLabel = trigger.textContent;
             trigger.disabled = true;
@@ -785,7 +794,7 @@
                 await spin();
             } finally {
                 trigger.textContent = originalLabel;
-                trigger.disabled = state.spinning || state.winners >= state.winnerSlots || count <= 0;
+                trigger.disabled = state.spinning || count <= 0;
             }
         }));
 

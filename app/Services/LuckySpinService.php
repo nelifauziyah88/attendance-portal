@@ -90,9 +90,9 @@ class LuckySpinService
         return DB::transaction(function () use ($expectedBadges) {
             $stats = $this->getStatistics();
 
-            if ($stats['winners'] >= $stats['winnerSlots']) {
-                throw new Exception('Semua slot hadiah telah digunakan. Tidak ada drawing tersisa.');
-            }
+            // if ($stats['winners'] >= $stats['winnerSlots']) {
+            //     throw new Exception('Semua slot hadiah telah digunakan. Tidak ada drawing tersisa.');
+            // }
 
             // Keep one canonical order so the reel index refers to the same participant.
             $eligibleCandidates = $this->getEligibleParticipants()

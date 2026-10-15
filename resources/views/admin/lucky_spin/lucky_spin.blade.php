@@ -367,7 +367,7 @@
 
         const setSpinning = (value) => {
             state.spinning = value;
-            triggers.forEach((trigger) => (trigger.disabled = value || state.winners >= state.winnerSlots));
+            triggers.forEach((trigger) => (trigger.disabled = value));
             durationInput.disabled = value;
             list.querySelectorAll('[data-remove], [data-forfeit-winner]').forEach((button) => (button.disabled = value));
             syncForfeit();
