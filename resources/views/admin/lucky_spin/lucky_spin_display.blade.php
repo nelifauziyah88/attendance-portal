@@ -171,6 +171,7 @@
 
         const strip = document.querySelector('[data-strip]');
         const triggers = document.querySelectorAll('[data-spin]');
+        const spinButtonLabels = new Map([...triggers].map((trigger) => [trigger, trigger.textContent.trim()]));
         const overlay = document.querySelector('[data-overlay]');
         const card = document.querySelector('[data-card]');
         const name = document.querySelector('[data-winner-name]');
@@ -207,6 +208,7 @@
 
         let participants = JSON.parse(reel.dataset.participants || '[]');
         let count = participants.length;
+        let spinCountdownTimer = null;
 
         const introSound = new Audio(root.dataset.introSound);
         const drawSound = new Audio(root.dataset.drawSound);
@@ -443,6 +445,13 @@
             state.spinning = value;
 
             triggers.forEach((trigger) => {trigger.disabled = value;});
+            if (!value) {
+                clearInterval(spinCountdownTimer);
+                spinCountdownTimer = null;
+                triggers.forEach((trigger) => {
+                    trigger.textContent = spinButtonLabels.get(trigger) || 'Draw Winner';
+                });
+            }
         };
 
         const applyStats = (stats) => {
@@ -559,6 +568,24 @@
             section.classList.toggle('hidden', !rows.length);
         };
 
+        const startSpinButtonCountdown = (duration) => {
+            clearInterval(spinCountdownTimer);
+            const endsAt = Date.now() + duration * 1000;
+            const update = () => {
+                const remaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+                triggers.forEach((trigger) => {
+                    trigger.textContent = remaining > 0 ? String(remaining) : '0';
+                });
+                if (remaining <= 0) {
+                    clearInterval(spinCountdownTimer);
+                    spinCountdownTimer = null;
+                }
+            };
+
+            update();
+            spinCountdownTimer = setInterval(update, 100);
+        };
+
         const begin = (data) => {
             if (data.order) {                 // baru
             applyOrder(data.order, data.requiredCopies);
@@ -569,6 +596,7 @@
             state.slot = data.slot;
 
             setSpinning(true);
+            startSpinButtonCountdown(Number(data.duration));
             toggleOverlay(false);
             setReelVisibility(true);
             strip.style.transitionTimingFunction = spinEasing();
@@ -793,7 +821,7 @@
 
                 await spin();
             } finally {
-                trigger.textContent = originalLabel;
+                if (!state.spinning) trigger.textContent = originalLabel;
                 trigger.disabled = state.spinning || count <= 0;
             }
         }));
