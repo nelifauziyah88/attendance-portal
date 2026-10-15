@@ -76,6 +76,7 @@
                 data-history="{{ json_encode($recentWinners) }}"
                 data-draw-url="{{ route('admin.lucky-spin.draw') }}"
                 data-forfeit-url-template="{{ route('admin.lucky-spin.forfeit', ['badge' => 'BADGE_PLACEHOLDER']) }}"
+                data-remove-url-template="{{ route('admin.lucky-spin.remove', ['badge' => 'BADGE_PLACEHOLDER']) }}"
                 data-csrf-token="{{ csrf_token() }}">
                 <div class="flex flex-wrap items-start justify-between gap-4 [animation:rise_.7s_ease-out_both]">
                     <div class="min-w-0">
@@ -138,7 +139,7 @@
                             Open Display
                         </a>
                         <button type="button" data-forfeit
-                            class="hidden h-12 w-full items-center justify-center rounded-xl border-2 border-red-200 bg-white px-6 text-sm font-medium text-red-600 transition duration-300 hover:-translate-y-0.5 hover:border-red-400 hover:bg-red-50 active:scale-[.98]">
+                            class="hidden h-12 w-full items-center justify-center rounded-xl border-2 border-amber-200 bg-white px-6 text-sm font-medium text-amber-700 transition duration-300 hover:-translate-y-0.5 hover:border-amber-400 hover:bg-amber-50 active:scale-[.98]">
                             Forfeit Winner (Not Present)
                         </button>
                     </div>
@@ -148,10 +149,16 @@
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <h2 class="text-lg font-semibold tracking-tight sm:text-xl">Winners</h2>
 
-                        <button type="button" data-remove-all
-                            class="hidden h-9 items-center justify-center rounded-lg border border-red-200 bg-white px-4 text-xs font-medium text-red-600 transition duration-300 hover:border-red-400 hover:bg-red-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
-                            Remove All
-                        </button>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" data-remove-all
+                                class="hidden h-9 items-center justify-center rounded-lg border border-sky-200 bg-white px-4 text-xs font-medium text-sky-700 transition duration-300 hover:border-sky-400 hover:bg-sky-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
+                                Reset All
+                            </button>
+                            <button type="button" data-forfeit-all
+                                class="hidden h-9 items-center justify-center rounded-lg border border-amber-200 bg-white px-4 text-xs font-medium text-amber-700 transition duration-300 hover:border-amber-400 hover:bg-amber-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
+                                Forfeit All
+                            </button>
+                        </div>
                     </div>
 
                     <div class="mt-4 max-h-[31rem] overflow-auto overscroll-contain">
@@ -179,10 +186,16 @@
                     class="px-3 py-3 sm:px-4 {{ $field === 'badge' ? 'whitespace-nowrap font-semibold' : '' }}"></td>
             @endforeach
             <td class="px-3 py-3 sm:px-4">
-                <button type="button" data-remove title="Remove if not present"
-                    class="inline-flex h-8 items-center justify-center rounded-lg border border-red-200 bg-white px-3 text-xs font-medium text-red-600 transition duration-300 hover:border-red-400 hover:bg-red-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
-                    Remove
-                </button>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" data-remove title="Remove winner and return participant to eligible list"
+                        class="inline-flex h-8 items-center justify-center rounded-lg border border-sky-200 bg-white px-3 text-xs font-medium text-sky-700 transition duration-300 hover:border-sky-400 hover:bg-sky-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
+                        Remove
+                    </button>
+                    <button type="button" data-forfeit-winner title="Forfeit this winner"
+                        class="inline-flex h-8 items-center justify-center rounded-lg border border-amber-200 bg-white px-3 text-xs font-medium text-amber-700 transition duration-300 hover:border-amber-400 hover:bg-amber-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
+                        Forfeit
+                    </button>
+                </div>
             </td>
         </tr>
     </template>
@@ -199,6 +212,7 @@
         const triggers = document.querySelectorAll('[data-spin]');
         const forfeitButton = document.querySelector('[data-forfeit]');
         const removeAllButton = document.querySelector('[data-remove-all]');
+        const forfeitAllButton = document.querySelector('[data-forfeit-all]');
         const note = document.querySelector('[data-result-note]');
         const resultName = document.querySelector('[data-result-name]');
         const resultBadge = document.querySelector('[data-result-badge]');
@@ -346,13 +360,16 @@
             removeAllButton.classList.toggle('hidden', !visible);
             removeAllButton.classList.toggle('inline-flex', visible);
             removeAllButton.disabled = state.spinning;
+            forfeitAllButton.classList.toggle('hidden', !visible);
+            forfeitAllButton.classList.toggle('inline-flex', visible);
+            forfeitAllButton.disabled = state.spinning;
         };
 
         const setSpinning = (value) => {
             state.spinning = value;
             triggers.forEach((trigger) => (trigger.disabled = value || state.winners >= state.winnerSlots));
             durationInput.disabled = value;
-            list.querySelectorAll('[data-remove]').forEach((button) => (button.disabled = value));
+            list.querySelectorAll('[data-remove], [data-forfeit-winner]').forEach((button) => (button.disabled = value));
             syncForfeit();
             syncRemoveAll();
         };
@@ -378,6 +395,25 @@
 
         const forfeitWinner = async (badge) => {
             const url = root.dataset.forfeitUrlTemplate.replace('BADGE_PLACEHOLDER', encodeURIComponent(badge));
+            const response = await fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': root.dataset.csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'Winner could not be removed.');
+            }
+
+            return result;
+        };
+
+        const removeWinnerRecord = async (badge) => {
+            const url = root.dataset.removeUrlTemplate.replace('BADGE_PLACEHOLDER', encodeURIComponent(badge));
             const response = await fetch(url, {
                 method: 'DELETE',
                 headers: {
@@ -609,19 +645,20 @@
             save();
         };
 
-        const removeWinner = async (badge) => {
+        const forfeitWinnerEntry = async (badge) => {
             if (state.spinning) return;
 
             const entry = state.history.find((item) => item.badge === badge);
             if (!entry) return;
 
             const confirmation = await Swal.fire({
-                title: `Remove ${entry.name}?`,
-                text: 'This winner will not be drawn again.',
+                title: `Forfeit ${entry.name}?`,
+                text: 'This removes them from the active winners count. Their check-in stays saved, and they will not return to the eligible list.',
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonText: 'Yes, remove',
+                confirmButtonText: 'Yes, forfeit',
                 cancelButtonText: 'Cancel',
+                confirmButtonColor: '#b45309',
                 reverseButtons: true,
                 focusCancel: true
             });
@@ -638,7 +675,51 @@
                 applyStats(result.stats);
                 renderHistory();
                 setResult(`${entry.name.toUpperCase()} FORFEITED - DRAW AGAIN`);
-                channel?.postMessage({ type: 'remove', badge, stats: result.stats });
+                channel?.postMessage({ type: 'refresh' });
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Forfeit completed',
+                    text: `The winner count decreased and a draw slot is available again. ${entry.name} stays excluded from eligible spins; check-in is unchanged.`,
+                    confirmButtonColor: '#b45309',
+                });
+                window.location.reload();
+            } catch (error) {
+                await Swal.fire({ icon: 'error', title: 'Unable to forfeit winner', text: error.message });
+            } finally {
+                setSpinning(false);
+            }
+        };
+
+        const removeWinner = async (badge) => {
+            if (state.spinning) return;
+
+            const entry = state.history.find((item) => String(item.badge) === String(badge));
+            if (!entry) return;
+
+            const confirmation = await Swal.fire({
+                title: `Remove ${entry.name} from winners?`,
+                text: 'The winner record will be deleted. Their check-in remains, and they will return to the eligible list.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, remove',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#0284c7',
+                reverseButtons: true,
+                focusCancel: true,
+            });
+
+            if (!confirmation.isConfirmed || state.spinning) return;
+
+            setSpinning(true);
+            try {
+                const result = await removeWinnerRecord(badge);
+                state.history = state.history.filter((item) => String(item.badge) !== String(badge));
+                applyStats(result.stats);
+                renderHistory();
+                setResult(`${entry.name.toUpperCase()} REMOVED - ELIGIBLE AGAIN`);
+                channel?.postMessage({ type: 'refresh' });
+                await Swal.fire({ icon: 'success', title: 'Removed', text: `${entry.name} is eligible to spin again.` });
+                window.location.reload();
             } catch (error) {
                 await Swal.fire({ icon: 'error', title: 'Unable to remove winner', text: error.message });
             } finally {
@@ -651,10 +732,11 @@
 
             const confirmation = await Swal.fire({
                 title: `Remove all ${state.history.length} winners?`,
-                text: 'All winners will not be drawn again.',
+                text: 'Winner records will be deleted. Check-ins will remain, and participants will return to the eligible list.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, remove all',
+                confirmButtonColor: '#0284c7',
                 cancelButtonText: 'Cancel',
                 reverseButtons: true,
                 focusCancel: true
@@ -669,6 +751,45 @@
             try {
                 let result;
                 for (const entry of removed) {
+                    result = await removeWinnerRecord(entry.badge);
+                }
+
+                state.history = [];
+                applyStats(result.stats);
+                setResult('ALL WINNERS REMOVED - ELIGIBLE AGAIN');
+                channel?.postMessage({ type: 'refresh' });
+                await Swal.fire({ icon: 'success', title: 'All winners removed', text: 'Check-ins are unchanged and all participants are eligible to spin again.' });
+                window.location.reload();
+            } catch (error) {
+                await Swal.fire({ icon: 'error', title: 'Unable to remove all winners', text: error.message });
+                window.location.reload();
+            } finally {
+                setSpinning(false);
+            }
+        };
+
+        const forfeitAll = async () => {
+            if (state.spinning || !state.history.length) return;
+
+            const confirmation = await Swal.fire({
+                title: `Forfeit all ${state.history.length} winners?`,
+                text: 'Their active winners count will decrease. Check-ins stay saved, and these participants will remain excluded from eligible spins.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, forfeit all',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#b45309',
+                reverseButtons: true,
+                focusCancel: true,
+            });
+
+            if (!confirmation.isConfirmed || state.spinning || !state.history.length) return;
+
+            const forfeited = [...state.history];
+            setSpinning(true);
+            try {
+                let result;
+                for (const entry of forfeited) {
                     result = await forfeitWinner(entry.badge);
                 }
 
@@ -676,9 +797,16 @@
                 applyStats(result.stats);
                 renderHistory();
                 setResult('ALL WINNERS FORFEITED - DRAW AGAIN');
-                removed.forEach((entry) => channel?.postMessage({ type: 'remove', badge: entry.badge }));
+                channel?.postMessage({ type: 'refresh' });
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Forfeit all completed',
+                    text: 'The winner count decreased and draw slots are available again. Check-ins are unchanged, and all participants remain excluded from eligible spins.',
+                    confirmButtonColor: '#b45309',
+                });
+                window.location.reload();
             } catch (error) {
-                await Swal.fire({ icon: 'error', title: 'Unable to remove all winners', text: error.message });
+                await Swal.fire({ icon: 'error', title: 'Unable to forfeit all winners', text: error.message });
                 window.location.reload();
             } finally {
                 setSpinning(false);
@@ -688,7 +816,7 @@
         const forfeit = () => {
             if (state.spinning || !state.history.length) return;
 
-            removeWinner(state.history[0].badge);
+            forfeitWinnerEntry(state.history[0].badge);
         };
 
         applyDuration(state.duration);
@@ -732,12 +860,18 @@
         triggers.forEach((trigger) => trigger.addEventListener('click', spin));
         forfeitButton.addEventListener('click', forfeit);
         removeAllButton.addEventListener('click', removeAll);
+        forfeitAllButton.addEventListener('click', forfeitAll);
 
         list.addEventListener('click', (event) => {
-            const button = event.target.closest('[data-remove]');
+            const button = event.target.closest('[data-remove], [data-forfeit-winner]');
             if (!button) return;
 
-            removeWinner(button.closest('tr').dataset.badge);
+            const badge = button.closest('tr').dataset.badge;
+            if (button.hasAttribute('data-forfeit-winner')) {
+                forfeitWinnerEntry(badge);
+            } else {
+                removeWinner(badge);
+            }
         });
 
         strip.addEventListener('transitionend', (event) => {

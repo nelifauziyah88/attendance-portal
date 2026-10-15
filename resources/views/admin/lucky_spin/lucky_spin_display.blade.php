@@ -182,14 +182,13 @@
         const STORAGE_KEY = 'lucky-spin-state';
         const MIN_DURATION = 10;
         const MAX_DURATION = 60;
-        const LOOPS = 2;
+        const BASE_LOOPS = 2;
+        const SPIN_EASING = 'cubic-bezier(0.2, 0.24, 0.42, 1)';
         const FADE_DURATION = 1200;
         const FADE_INTERVAL = 50;
         const INTRO_VOLUME = 0.7;
         const MIN_RATE = 0.5;
         const MAX_RATE = 2;
-        const TAIL_SECONDS = 4;
-        const MAX_TAIL_RATIO = 0.6;
         const CONFETTI_COLORS = ['#ffffff', '#e9b6ff', '#ff5fd2', '#5ad2ff', '#ffd666'];
 
         let participants = JSON.parse(reel.dataset.participants || '[]');
@@ -402,11 +401,6 @@
             return Math.min(MAX_DURATION, Math.max(MIN_DURATION, seconds));
         };
 
-        const easingFor = (seconds) => {
-            const tail = Math.min(MAX_TAIL_RATIO, TAIL_SECONDS / Math.max(seconds, 1));
-            return `cubic-bezier(0.2, 0.4, ${(1 - tail).toFixed(3)}, 1)`;
-        };
-
         const saved = load();
 
         const state = {
@@ -499,7 +493,7 @@
         };
 
         // Susun ulang participants dan item di reel sesuai urutan badge
-        const applyOrder = (badges) => {
+        const applyOrder = (badges, requiredCopies = 6) => {
             const byBadge = new Map(participants.map((p) => [String(p.badge), p]));
             participants = badges.map((b) => byBadge.get(String(b))).filter(Boolean);
 
@@ -515,14 +509,17 @@
                 groups.get(key).push(el);
             });
 
-            const copies = Math.max(...[...groups.values()].map((g) => g.length));
             const fragment = document.createDocumentFragment();
 
-            for (let c = 0; c < copies; c++) {
-                participants.forEach((p) => {
-                    const el = groups.get(String(p.badge))?.[c];
-                    if (el) fragment.appendChild(el);
-                });
+            participants.forEach((p) => {
+                const group = groups.get(String(p.badge)) || [];
+                while (group.length > requiredCopies) group.pop().remove();
+                while (group.length < requiredCopies) group.push(group[0].cloneNode(true));
+                groups.set(String(p.badge), group);
+            });
+
+            for (let c = 0; c < requiredCopies; c++) {
+                participants.forEach((p) => fragment.appendChild(groups.get(String(p.badge))[c]));
             }
 
             parent.appendChild(fragment);
@@ -552,7 +549,7 @@
 
         const begin = (data) => {
             if (data.order) {                 // baru
-            applyOrder(data.order);
+            applyOrder(data.order, data.requiredCopies);
             count = participants.length;
             jumpTo(data.startSlot);
         }
@@ -562,8 +559,8 @@
             setSpinning(true);
             toggleOverlay(false);
             setReelVisibility(true);
+            strip.style.transitionTimingFunction = SPIN_EASING;
             strip.style.transitionDuration = `${data.duration}s`;
-            strip.style.transitionTimingFunction = easingFor(data.duration);
             moveTo(data.slot);
             startConfetti();
 
@@ -621,12 +618,18 @@
 
                 const start = count + Math.floor(Math.random() * count);   // titik awal acak
                 const delta = (index - (start % count) + count) % count;
+                const baseDistance = BASE_LOOPS * count + delta;
+                const targetDistance = baseDistance * state.duration / MIN_DURATION;
+                const loops = Math.max(BASE_LOOPS, Math.round((targetDistance - delta) / count));
+                const slot = start + loops * count + delta;
+                const requiredCopies = Math.ceil((slot + 1) / count);
 
                 const data = {
                     type: 'spin',
                     order,
                     startSlot: start,
-                    slot: start + LOOPS * count + delta,
+                    slot,
+                    requiredCopies,
                     winner,
                     draw: winner.draw,
                     duration: state.duration,
@@ -752,6 +755,7 @@
         }) => {
             if (data.type === 'spin') begin(data);
             if (data.type === 'remove') removeWinner(data.badge, data.stats);
+            if (data.type === 'refresh') window.location.reload();
             if (data.type === 'duration') state.duration = clampDuration(data.value);
         });
 
@@ -766,7 +770,24 @@
         winnerSound.addEventListener('ended', () => startIntro());
         document.addEventListener('keydown', unlockAudio, true);
 
-        triggers.forEach((trigger) => trigger.addEventListener('click', spin));
+        triggers.forEach((trigger) => trigger.addEventListener('click', async () => {
+            if (state.spinning || count <= 0 || state.winners >= state.winnerSlots) return;
+
+            const originalLabel = trigger.textContent;
+            trigger.disabled = true;
+
+            try {
+                for (let seconds = 5; seconds >= 1; seconds--) {
+                    trigger.textContent = String(seconds);
+                    await new Promise((resolve) => setTimeout(resolve, 1000));
+                }
+
+                await spin();
+            } finally {
+                trigger.textContent = originalLabel;
+                trigger.disabled = state.spinning || state.winners >= state.winnerSlots || count <= 0;
+            }
+        }));
 
         document.addEventListener('keydown', (event) => {
             if (event.code === 'Space' || event.code === 'Enter') {

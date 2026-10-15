@@ -90,7 +90,25 @@ class LuckySpinController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Pemenang berhasil dibatalkan dan stok hadiah telah dikembalikan.',
+                'message' => 'Forfeit berhasil. Slot undian tersedia kembali dan peserta tetap tidak eligible.',
+                'stats' => $this->luckySpinService->getStatistics(),
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function remove($badge)
+    {
+        try {
+            $this->luckySpinService->removeWinnerByBadge($badge);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Catatan pemenang berhasil dihapus. Data check-in tetap tersimpan.',
                 'stats' => $this->luckySpinService->getStatistics(),
             ]);
         } catch (Exception $e) {

@@ -51,6 +51,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/', [LuckySpinController::class, 'index'])->name('index');
         Route::post('/draw', [LuckySpinController::class, 'draw'])->name('draw');
         Route::delete('/forfeit/{badge}', [LuckySpinController::class, 'forfeit'])->name('forfeit');
+        Route::delete('/remove/{badge}', [LuckySpinController::class, 'remove'])->name('remove');
         Route::get('/display', [LuckySpinController::class, 'display'])->name('display');
     });
 });

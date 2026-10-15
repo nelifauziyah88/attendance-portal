@@ -33,11 +33,13 @@ class LuckySpinService
         return MasterAttendance::query()
             ->whereHas('attendance')
             ->where('is_manager', false)
+            // Keep forfeited badge records excluded; only Remove deletes the record and restores eligibility.
             ->whereNotIn('badge_id', LuckySpin::query()->select('badge_id')->whereNotNull('badge_id'));
     }
 
     public function getStatistics(): array
     {
+        // Forfeited records stop counting as winners, which frees their draw slot.
         $winners = LuckySpin::activeWinner()->count();
 
         return [
@@ -155,6 +157,13 @@ class LuckySpinService
             $spinRecord = LuckySpin::activeWinner()->where('badge_id', $badgeId)->firstOrFail();
 
             $spinRecord->update(['won_at' => LuckySpin::FORFEITED_AT]);
+        });
+    }
+
+    public function removeWinnerByBadge(string $badgeId): void
+    {
+        DB::transaction(function () use ($badgeId) {
+            LuckySpin::activeWinner()->where('badge_id', $badgeId)->firstOrFail()->delete();
         });
     }
 }
