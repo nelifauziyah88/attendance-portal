@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Pagination\Paginator;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,5 +24,6 @@ class AppServiceProvider extends ServiceProvider
         Paginator::currentPathResolver(function () {
             return url(request()->path());
         });
+        Gate::define('viewLogViewer', fn ($user = null) => $user !== null);
     }
 }
