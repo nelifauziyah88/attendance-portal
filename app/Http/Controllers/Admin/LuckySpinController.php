@@ -35,6 +35,20 @@ class LuckySpinController extends Controller
                 'prize' => $item->prize->name ?? '-',
             ]);
 
+        // Baru: peserta yang di-forfeit (semua record yang bukan pemenang aktif)
+        $forfeited = LuckySpin::with('masterAttendance')
+            ->whereNotIn('id', LuckySpin::activeWinner()->select('id'))
+            ->latest('updated_at')
+            ->get()
+            ->map(fn ($item) => [
+                'badge' => $item->badge_id,
+                'name' => $item->masterAttendance->name ?? '-',
+                'position' => $item->masterAttendance->position ?? '-',
+                'department' => $item->masterAttendance->department ?? '-',
+                'forfeited_at' => $item->updated_at?->format('d M Y H:i:s') ?? '-',
+            ])
+            ->values();
+
         $prizes = $this->luckySpinService->getActivePrizes();
 
         return view('admin.lucky_spin.lucky_spin', [
@@ -51,6 +65,7 @@ class LuckySpinController extends Controller
                 'is_manager' => (bool)$p->is_manager,
             ])->values()->all(),
             'recentWinners' => $recentWinners,
+            'forfeited' => $forfeited, //Baru: daftar peserta yang di-forfeit
             'prizes' => $prizes,
         ]);
     }

@@ -119,9 +119,16 @@
 
                 <section data-winners-section
                     class="mt-5 hidden min-h-0 w-full min-w-0 max-w-5xl flex-col rounded-2xl border border-[#5ad2ff]/50 bg-[#1b0850]/40 p-4 text-left shadow-[0_0_24px_rgba(74,168,255,.3)] backdrop-blur-sm [&:not(.hidden)]:flex sm:mt-6 sm:p-5">
-                    <h2 class="shrink-0 text-sm font-semibold tracking-widest text-[#bfe6ff]">WINNERS</h2>
+                    <div class="flex shrink-0 items-center justify-between gap-3">
+                        <h2 class="text-sm font-semibold tracking-widest text-[#bfe6ff]">WINNERS</h2>
 
-                    <div
+                        <button type="button" data-winners-toggle aria-expanded="true"
+                            class="inline-flex h-8 items-center justify-center rounded-lg border border-[#5ad2ff]/50 bg-white/10 px-3 text-xs font-medium tracking-wider text-[#bfe6ff] transition duration-300 hover:bg-white/20 active:scale-[.98]">
+                            Hide
+                        </button>
+                    </div>
+
+                    <div data-winners-body
                         class="mt-3 min-h-0 max-h-[13rem] flex-1 overflow-auto overscroll-contain [scrollbar-width:thin] [scrollbar-color:#5ad2ff_transparent]">
                         <table class="w-full min-w-[40rem] text-left text-sm">
                             <thead class="sticky top-0 z-10 bg-[#1b0850]">
@@ -177,6 +184,8 @@
         const name = document.querySelector('[data-winner-name]');
         const badge = document.querySelector('[data-winner-badge]');
         const section = document.querySelector('[data-winners-section]');
+        const winnersToggle = document.querySelector('[data-winners-toggle]');
+        const winnersBody = document.querySelector('[data-winners-body]');
         const list = document.querySelector('[data-winner-list]');
         const template = document.getElementById('winner-template');
         const channel = 'BroadcastChannel' in window ? new BroadcastChannel('lucky-spin') : null;
@@ -782,6 +791,31 @@
             renderHistory();
             save();
         };
+
+        const TABLE_HIDDEN_KEY = 'lucky-spin-table-hidden';
+
+        const setTableHidden = (hidden) => {
+            winnersBody.classList.toggle('hidden', hidden);
+            winnersToggle.textContent = hidden ? 'Show' : 'Hide';
+            winnersToggle.setAttribute('aria-expanded', String(!hidden));
+
+            try {
+                localStorage.setItem(TABLE_HIDDEN_KEY, hidden ? '1' : '0');
+            } catch {
+                // abaikan kalau penyimpanan tidak tersedia
+            }
+        };
+
+        winnersToggle.addEventListener('click', () => {
+            setTableHidden(!winnersBody.classList.contains('hidden'));
+            winnersToggle.blur();   // supaya Space/Enter tetap untuk Draw, bukan menekan tombol ini
+        });
+
+        try {
+            if (localStorage.getItem(TABLE_HIDDEN_KEY) === '1') setTableHidden(true);
+        } catch {
+            // abaikan
+        }
 
         setSpinning(false);
         jumpTo(state.slot);

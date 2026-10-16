@@ -41,6 +41,7 @@
     $displayUrl = $displayUrl ?? url('/admin/lucky-spin/display');
     $participants = $participants ?? [];
     $recentWinners = $recentWinners ?? [];
+    $forfeited = $forfeited ?? [];
 
     $stats = [
         ['label' => 'CHECKED IN', 'key' => 'checked', 'value' => $checkedIn],
@@ -74,6 +75,7 @@
             <main class="min-w-0 flex-1 p-4 sm:p-6 lg:p-8" data-draw data-winners="{{ $winners }}"
                 data-checked-in="{{ $checkedIn }}" data-winner-slots="{{ $winnerSlots }}" data-eligible="{{ $eligible }}"
                 data-history="{{ json_encode($recentWinners) }}"
+                data-forfeited="{{ json_encode($forfeited) }}"
                 data-draw-url="{{ route('admin.lucky-spin.draw') }}"
                 data-forfeit-url-template="{{ route('admin.lucky-spin.forfeit', ['badge' => 'BADGE_PLACEHOLDER']) }}"
                 data-remove-url-template="{{ route('admin.lucky-spin.remove', ['badge' => 'BADGE_PLACEHOLDER']) }}"
@@ -150,29 +152,38 @@
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <h2 class="text-lg font-semibold tracking-tight sm:text-xl">Winners</h2>
 
-                        <div class="flex flex-wrap gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" data-forfeited-list
+                                class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-amber-200 bg-white px-4 text-xs font-medium text-amber-700 transition duration-300 hover:border-amber-400 hover:bg-amber-50 active:scale-[.98]">
+                                Forfeited List
+                                <span data-forfeited-count
+                                    class="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold">0</span>
+                            </button>
+
+                            <button type="button" data-forfeit-all
+                                class="hidden h-10 items-center justify-center rounded-xl border border-amber-200 bg-white px-4 text-xs font-medium text-amber-700 transition duration-300 hover:border-amber-400 hover:bg-amber-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
+                                Forfeit All
+                            </button>
+
                             <button type="button" data-remove-all title="Reset all lucky draw history and make checked-in participants eligible again"
                                 class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border-2 border-rose-700 bg-rose-600 px-5 text-sm font-bold text-white shadow-lg shadow-rose-300/70 transition duration-200 hover:-translate-y-0.5 hover:bg-rose-700 hover:shadow-xl hover:shadow-rose-400/70 active:scale-[.97] disabled:pointer-events-none disabled:opacity-50">
                                 <span aria-hidden="true">↻</span> Reset Drawing
                             </button>
-                            <button type="button" data-forfeit-all
-                                class="hidden h-9 items-center justify-center rounded-lg border border-amber-200 bg-white px-4 text-xs font-medium text-amber-700 transition duration-300 hover:border-amber-400 hover:bg-amber-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
-                                Forfeit All
-                            </button>
                         </div>
                     </div>
 
-                    <div class="mt-4 max-h-[31rem] overflow-auto overscroll-contain">
-                        <table class="w-full min-w-[40rem] text-left text-sm">
+                    <div class="mt-4 max-h-[31rem] overflow-auto overscroll-contain rounded-xl border border-purple-100">
+                        <table class="w-full min-w-[44rem] text-left text-sm">
                             <thead>
-                                <tr class="text-xs font-semibold text-[#2a0b5c]">
+                                <tr class="text-[11px] font-semibold uppercase tracking-wider text-[#2a0b5c]">
+                                    <th class="sticky top-0 z-10 w-14 whitespace-nowrap bg-purple-50 px-3 py-3 text-center sm:px-4">No</th>
                                     @foreach ($columns as $label)
                                         <th class="sticky top-0 z-10 whitespace-nowrap bg-purple-50 px-3 py-3 sm:px-4">{{ $label }}</th>
                                     @endforeach
-                                    <th class="sticky top-0 z-10 whitespace-nowrap bg-purple-50 px-3 py-3 sm:px-4">Action</th>
+                                    <th class="sticky top-0 z-10 whitespace-nowrap bg-purple-50 px-3 py-3 text-center sm:px-4">Action</th>
                                 </tr>
                             </thead>
-                            <tbody data-winner-list class="divide-y divide-purple-100"></tbody>
+                            <tbody data-winner-list class="divide-y divide-purple-100 [counter-reset:row]"></tbody>
                         </table>
                     </div>
                 </section>
@@ -180,26 +191,27 @@
         </div>
     </div>
 
-    <template id="winner-template">
-        <tr class="transition duration-300 hover:bg-purple-50/70 [animation:rise_.5s_ease-out_both]">
-            @foreach ($columns as $field => $label)
-                <td data-field="{{ $field }}"
-                    class="px-3 py-3 sm:px-4 {{ $field === 'badge' ? 'whitespace-nowrap font-semibold' : '' }}"></td>
-            @endforeach
-            <td class="px-3 py-3 sm:px-4">
-                <div class="flex flex-wrap gap-2">
-                    <button type="button" data-remove title="Remove winner and return participant to eligible list"
-                        class="inline-flex h-8 items-center justify-center rounded-lg border border-sky-200 bg-white px-3 text-xs font-medium text-sky-700 transition duration-300 hover:border-sky-400 hover:bg-sky-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
-                        Remove
-                    </button>
-                    <button type="button" data-forfeit-winner title="Forfeit this winner"
-                        class="inline-flex h-8 items-center justify-center rounded-lg border border-amber-200 bg-white px-3 text-xs font-medium text-amber-700 transition duration-300 hover:border-amber-400 hover:bg-amber-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
-                        Forfeit
-                    </button>
-                </div>
-            </td>
-        </tr>
-    </template>
+        <template id="winner-template">
+            <tr class="transition duration-300 hover:bg-purple-50/70 [animation:rise_.5s_ease-out_both] [counter-increment:row]">
+                <td class="w-14 px-3 py-3 text-center text-slate-400 before:content-[counter(row)] sm:px-4"></td>
+                @foreach ($columns as $field => $label)
+                    <td data-field="{{ $field }}"
+                        class="px-3 py-3 sm:px-4 {{ $field === 'badge' ? 'whitespace-nowrap font-semibold' : '' }}"></td>
+                @endforeach
+                <td class="px-3 py-3 sm:px-4">
+                    <div class="flex flex-wrap justify-center gap-2">
+                        <button type="button" data-remove title="Remove winner and return participant to eligible list"
+                            class="inline-flex h-8 items-center justify-center rounded-lg border border-sky-200 bg-white px-3 text-xs font-medium text-sky-700 transition duration-300 hover:border-sky-400 hover:bg-sky-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
+                            Remove
+                        </button>
+                        <button type="button" data-forfeit-winner title="Forfeit this winner"
+                            class="inline-flex h-8 items-center justify-center rounded-lg border border-amber-200 bg-white px-3 text-xs font-medium text-amber-700 transition duration-300 hover:border-amber-400 hover:bg-amber-50 active:scale-[.98] disabled:pointer-events-none disabled:opacity-50">
+                            Forfeit
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        </template>
 
     <script>
         const root = document.querySelector('[data-draw]');
@@ -214,6 +226,8 @@
         const forfeitButton = document.querySelector('[data-forfeit]');
         const removeAllButton = document.querySelector('[data-remove-all]');
         const forfeitAllButton = document.querySelector('[data-forfeit-all]');
+        const forfeitedButton = document.querySelector('[data-forfeited-list]');
+        const forfeitedCount = document.querySelector('[data-forfeited-count]');
         const note = document.querySelector('[data-result-note]');
         const resultName = document.querySelector('[data-result-name]');
         const resultBadge = document.querySelector('[data-result-badge]');
@@ -335,6 +349,7 @@
             slot: count + ((saved.slot ?? 0) % Math.max(count, 1)),
             duration: clampDuration(saved.duration ?? MIN_DURATION),
             history: JSON.parse(root.dataset.history),
+            forfeited: JSON.parse(root.dataset.forfeited || '[]'),
             spinning: false,
             current: null,
         };
@@ -409,6 +424,70 @@
             }
 
             return result;
+        };
+
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+        }[char]));
+
+        const nowLabel = () => new Date().toLocaleString('en-GB', {
+            day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false, timeZone: 'Asia/Jakarta',
+        }).replace(',', '');
+
+        const syncForfeitedCount = () => {
+            forfeitedCount.textContent = state.forfeited.length;
+        };
+
+        const addForfeited = (entry) => {
+            state.forfeited = [
+                {
+                    badge: entry.badge,
+                    name: entry.name,
+                    position: entry.position,
+                    department: entry.department,
+                    forfeited_at: nowLabel(),
+                },
+                ...state.forfeited.filter((item) => item.badge !== entry.badge),
+            ];
+            syncForfeitedCount();
+        };
+
+        // Ini yang membangun modalnya
+        const showForfeited = () => {
+            const rows = state.forfeited.map((item, index) => `
+                <tr class="border-b border-purple-100">
+                    <td class="px-3 py-2">${index + 1}</td>
+                    <td class="whitespace-nowrap px-3 py-2 font-semibold">${escapeHtml(item.badge)}</td>
+                    <td class="px-3 py-2">${escapeHtml(item.name)}</td>
+                    <td class="px-3 py-2">${escapeHtml(item.department)}</td>
+                    <td class="whitespace-nowrap px-3 py-2">${escapeHtml(item.forfeited_at)}</td>
+                </tr>`).join('');
+
+            Swal.fire({
+                title: `Forfeited (${state.forfeited.length})`,
+                width: '52rem',
+                showConfirmButton: true,
+                confirmButtonText: 'Close',
+                confirmButtonColor: '#b45309',
+                html: state.forfeited.length
+                    ? `<div style="max-height:24rem;overflow:auto;text-align:left">
+                        <table style="width:100%;font-size:.85rem">
+                        <thead>
+                            <tr style="text-align:left;position:sticky;top:0;background:#f3e8ff">
+                            <th class="px-3 py-2">No</th>
+                            <th class="px-3 py-2">Badge ID</th>
+                            <th class="px-3 py-2">Name</th>
+                            <th class="px-3 py-2">Department</th>
+                            <th class="px-3 py-2">Forfeited At</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                        </table>
+                    </div>`
+                    : '<p>Belum ada peserta yang di-forfeit.</p>',
+            });
         };
 
         const removeWinnerRecord = async (badge) => {
@@ -690,6 +769,7 @@
                 const result = await forfeitWinner(badge);
                 state.history = state.history.filter((item) => item.badge !== badge);
                 applyStats(result.stats);
+                addForfeited(entry);
                 renderHistory();
                 setResult(`${entry.name.toUpperCase()} FORFEITED - DRAW AGAIN`);
                 channel?.postMessage({ type: 'refresh' });
@@ -845,6 +925,7 @@
         jumpTo(state.slot);
         syncForfeit();
         syncRemoveAll();
+        syncForfeitedCount();
 
         durationInput.addEventListener('input', () => {
             const seconds = Number(durationInput.value);
@@ -878,6 +959,7 @@
         forfeitButton.addEventListener('click', forfeit);
         removeAllButton.addEventListener('click', removeAll);
         forfeitAllButton.addEventListener('click', forfeitAll);
+        forfeitedButton.addEventListener('click', showForfeited);
 
         list.addEventListener('click', (event) => {
             const button = event.target.closest('[data-remove], [data-forfeit-winner]');
